@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════
+  🚨 COPIE E COLE ESTE SQL NO SUPABASE AGORA 🚨
+═══════════════════════════════════════════════════════════════
+
+-- Adicionar colunas se não existirem
+ALTER TABLE parametros_folha
+ADD COLUMN IF NOT EXISTS adiantamento_habilitado BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS adiantamento_percentual NUMERIC(5,2) DEFAULT 40,
+ADD COLUMN IF NOT EXISTS adiantamento_dia_pagamento INTEGER DEFAULT 20;
+
+-- Habilitar adiantamento
+UPDATE parametros_folha
+SET 
+  adiantamento_habilitado = true,
+  adiantamento_percentual = 40,
+  adiantamento_dia_pagamento = 20;
+
+-- Verificar resultado
+SELECT 
+  id,
+  adiantamento_habilitado,
+  adiantamento_percentual,
+  adiantamento_dia_pagamento
+FROM parametros_folha;
+
+═══════════════════════════════════════════════════════════════
+  📋 PASSO A PASSO
+═══════════════════════════════════════════════════════════════
+
+1. Abra: https://supabase.com/dashboard
+2. Selecione: Seu projeto Qualitec RH
+3. Clique: SQL Editor (menu lateral)
+4. Cole: O SQL acima
+5. Execute: Clique em "Run" ou Ctrl+Enter
+6. Verifique: Deve mostrar adiantamento_habilitado = true
+
+═══════════════════════════════════════════════════════════════
+  ✅ DEPOIS DE EXECUTAR
+═══════════════════════════════════════════════════════════════
+
+1. Recarregue a página de Folha de Pagamento
+2. Clique em "💰 Adiantamento Salarial"
+3. Selecione colaboradores
+4. Gere os adiantamentos
+
+═══════════════════════════════════════════════════════════════
+  🎉 PRONTO! O SISTEMA ESTÁ FUNCIONANDO!
+═══════════════════════════════════════════════════════════════

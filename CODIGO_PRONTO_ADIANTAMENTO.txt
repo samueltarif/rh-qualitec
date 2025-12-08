@@ -1,0 +1,119 @@
+=================================================================
+CÓDIGO PRONTO PARA COPIAR - MODAL DE ADIANTAMENTO
+=================================================================
+
+📁 ARQUIVO: app/pages/folha-pagamento.vue
+
+=================================================================
+PARTE 1: ADICIONAR NO TEMPLATE (antes do </div> final)
+=================================================================
+
+<!-- Modal de Adiantamento Salarial -->
+<ModalAdiantamento 
+  :show="modalAdiantamento.aberto"
+  :colaboradores="colaboradoresAtivos"
+  :percentual="parametrosAdiantamento.percentual"
+  :dia-pagamento="parametrosAdiantamento.diaPagamento"
+  @close="modalAdiantamento.aberto = false"
+  @success="handleSucessoAdiantamento"
+/>
+
+=================================================================
+PARTE 2: ADICIONAR NO <script setup> (após as outras refs)
+=================================================================
+
+// Modal de Adiantamento
+const modalAdiantamento = ref({
+  aberto: false,
+})
+
+const colaboradoresAtivos = ref<any[]>([])
+
+const parametrosAdiantamento = ref({
+  percentual: 40,
+  diaPagamento: 20,
+})
+
+// Buscar colaboradores ativos
+const buscarColaboradores = async () => {
+  try {
+    const { data } = await useFetch('/api/colaboradores/index.get', {
+      query: { status: 'Ativo' }
+    })
+    
+    if (data.value) {
+      colaboradoresAtivos.value = data.value
+    }
+  } catch (error) {
+    console.error('Erro ao buscar colaboradores:', error)
+  }
+}
+
+// Buscar parâmetros de adiantamento
+const buscarParametrosAdiantamento = async () => {
+  try {
+    const { data } = await useFetch('/api/parametros-folha/index.get')
+    
+    if (data.value) {
+      parametrosAdiantamento.value = {
+        percentual: data.value.adiantamento_percentual || 40,
+        diaPagamento: data.value.adiantamento_dia_pagamento || 20,
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao buscar parâmetros:', error)
+  }
+}
+
+// Abrir modal de adiantamento
+const abrirModalAdiantamento = async () => {
+  await Promise.all([
+    buscarColaboradores(),
+    buscarParametrosAdiantamento()
+  ])
+  
+  modalAdiantamento.value.aberto = true
+}
+
+// Handler de sucesso
+const handleSucessoAdiantamento = () => {
+  if (folha.value) {
+    calcularFolha()
+  }
+}
+
+=================================================================
+PARTE 3: ADICIONAR onMounted (se não existir, criar)
+=================================================================
+
+onMounted(() => {
+  buscarColaboradores()
+  buscarParametrosAdiantamento()
+})
+
+=================================================================
+PARTE 4: CONECTAR AO COMPONENTE FolhaAcoesRapidasCalculos
+=================================================================
+
+Procure por <FolhaAcoesRapidasCalculos e adicione o evento:
+
+<FolhaAcoesRapidasCalculos 
+  @abrir-modal-adiantamento="abrirModalAdiantamento"
+  @abrir-modal-13-salario="abrirModal13Salario"
+  @abrir-modal-rescisao="abrirModalRescisao"
+  class="mb-8"
+/>
+
+=================================================================
+✅ PRONTO! AGORA O MODAL ABRE EM POPUP
+=================================================================
+
+Quando clicar no botão "Gerar Adiantamento":
+1. Sistema busca colaboradores
+2. Sistema busca configurações
+3. Modal abre automaticamente
+4. Você seleciona colaboradores
+5. Clica em "Gerar Adiantamentos"
+6. Sistema gera e fecha o modal
+
+=================================================================

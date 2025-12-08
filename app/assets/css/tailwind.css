@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Custom CSS Variables - Sistema RH Qualitec
+   ============================================================================ */
+
+:root {
+  /* Área Admin (Vermelho) */
+  --admin-primary: #b91c1c;    /* red-700 */
+  --admin-secondary: #991b1b;  /* red-800 */
+  --admin-accent: #dc2626;     /* red-600 */
+  
+  /* Área Funcionário (Azul) */
+  --employee-primary: #1e3a8a;  /* blue-900 */
+  --employee-secondary: #1e40af; /* blue-800 */
+  --employee-accent: #2563eb;   /* blue-600 */
+  
+  /* Status */
+  --success: #10b981;  /* green-500 */
+  --warning: #f59e0b;  /* yellow-500 */
+  --error: #ef4444;    /* red-500 */
+  --info: #3b82f6;     /* blue-500 */
+}
+
+/* ============================================================================
+   Custom Utilities
+   ============================================================================ */
+
+@layer components {
+  /* Admin Theme */
+  .admin-btn-primary {
+    @apply bg-red-700 hover:bg-red-800 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .admin-btn-secondary {
+    @apply bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  /* Employee Theme */
+  .employee-btn-primary {
+    @apply bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .employee-btn-secondary {
+    @apply bg-blue-100 hover:bg-blue-200 text-blue-900 font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  /* Cards */
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+  
+  /* Inputs */
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+  
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+}
+
+/* ============================================================================
+   Scrollbar Customization
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
