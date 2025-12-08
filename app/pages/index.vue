@@ -1,10 +1,5 @@
 <script setup lang="ts">
 // Redirecionar automaticamente para a página de admin
-definePageMeta({
-  middleware: 'auth'
-})
-
-// Redirecionar para admin usando onMounted
 onMounted(() => {
   navigateTo('/admin')
 })
