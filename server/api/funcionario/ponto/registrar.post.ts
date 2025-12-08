@@ -145,8 +145,12 @@ export default defineEventHandler(async (event) => {
     const empresaId = colaborador.empresa_id
     console.log('✅ [PONTO] Empresa ID:', empresaId)
 
-    const hoje = new Date().toISOString().split('T')[0]
-    const agora = new Date().toTimeString().split(' ')[0].substring(0, 5)
+    // Converter para horário de São Paulo (UTC-3)
+    const agoraUTC = new Date()
+    const agoraSP = new Date(agoraUTC.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    
+    const hoje = agoraSP.toISOString().split('T')[0]
+    const agora = agoraSP.toTimeString().split(' ')[0].substring(0, 5)
 
     // Verificar se já existe registro para hoje
     const { data: regData, error: fetchError } = await client
