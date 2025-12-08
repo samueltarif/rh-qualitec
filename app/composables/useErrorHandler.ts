@@ -13,8 +13,6 @@ interface ErrorLog {
 }
 
 export const useErrorHandler = () => {
-  const toast = useToast?.() || null
-
   // Tipos de erro conhecidos
   const ERROR_TYPES = {
     NETWORK: 'network',
@@ -121,16 +119,12 @@ export const useErrorHandler = () => {
     const message = customMessage || FRIENDLY_MESSAGES[errorType] || FRIENDLY_MESSAGES.unknown
     const details = extractErrorMessage(error)
 
-    if (toast) {
-      toast.add({
-        title: 'Erro',
-        description: message,
-        color: 'red',
-        timeout: 5000,
-      })
-    } else {
-      // Fallback para alert se toast não estiver disponível
-      alert(`Erro: ${message}\n\nDetalhes: ${details}`)
+    // Log no console
+    console.error('❌', message, details)
+    
+    // Exibir alert para o usuário
+    if (typeof window !== 'undefined') {
+      alert(`${message}\n\nDetalhes: ${details}`)
     }
   }
 
