@@ -23,7 +23,7 @@ DELETE FROM app_users WHERE email = 'admin@qualitec.com';
 -- ⚠️ SUBSTITUA 'SEU_AUTH_UID_AQUI' pelo auth_uid que você copiou acima!
 INSERT INTO app_users (auth_uid, email, role, nome, ativo, created_at, updated_at)
 VALUES (
-  'SEU_AUTH_UID_AQUI',  -- ⚠️ COLE O AUTH_UID AQUI
+  'e7deb4d7-33c7-4767-a843-da332aff7dc1',  -- ⚠️ COLE O AUTH_UID AQUI
   'admin@qualitec.com',
   'admin',
   'Administrador',
