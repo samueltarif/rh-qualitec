@@ -12,14 +12,8 @@
         </div>
       </div>
 
-      <!-- Botão de Registro -->
-      <ButtonBaterPontoAmber
-        texto="Bater Ponto"
-        texto-carregando="Registrando..."
-        :loading="loading"
-        size="md"
-        @click="$emit('registrar')"
-      />
+      <!-- Botão de Registro com GPS -->
+      <ButtonBaterPontoGeo @sucesso="$emit('sucesso', $event)" />
     </div>
 
     <!-- Último Registro -->
@@ -34,16 +28,14 @@
 <script setup lang="ts">
 interface Props {
   dataHoraAtual: string
-  loading?: boolean
   ultimoRegistro?: string
 }
 
 withDefaults(defineProps<Props>(), {
-  loading: false,
   ultimoRegistro: ''
 })
 
 defineEmits<{
-  registrar: []
+  sucesso: [data: any]
 }>()
 </script>

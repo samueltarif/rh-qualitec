@@ -30,6 +30,49 @@ export default defineEventHandler(async (event) => {
     console.log('🔍 [PONTO] User ID:', userId)
     console.log('🔍 [PONTO] User email:', user?.email)
     console.log('🔍 [PONTO] Body:', body)
+
+    // ============================================
+    // VALIDAÇÃO OBRIGATÓRIA DE GEOLOCALIZAÇÃO
+    // ============================================
+    if (!body.latitude || !body.longitude) {
+      console.error('❌ [PONTO] Geolocalização não fornecida')
+      throw createError({ 
+        statusCode: 400, 
+        message: 'GPS obrigatório. Ative a localização e tente novamente.' 
+      })
+    }
+
+    // Verificar se está dentro do raio permitido
+    const { data: verificacao, error: verificacaoError } = await client
+      .rpc('verificar_local_permitido', {
+        p_latitude: body.latitude,
+        p_longitude: body.longitude
+      })
+
+    console.log('🔍 [PONTO] Verificação GPS:', verificacao)
+
+    if (verificacaoError) {
+      console.error('❌ [PONTO] Erro ao verificar localização:', verificacaoError)
+      throw createError({ 
+        statusCode: 500, 
+        message: 'Erro ao verificar localização. Tente novamente.' 
+      })
+    }
+
+    const localInfo = verificacao?.[0]
+    
+    if (!localInfo || !localInfo.dentro_raio) {
+      const distancia = localInfo?.distancia || 'desconhecida'
+      const localNome = localInfo?.local_nome || 'local cadastrado'
+      
+      console.error('❌ [PONTO] Fora do raio permitido:', distancia, 'm')
+      throw createError({ 
+        statusCode: 403, 
+        message: `Você está fora do local permitido. Distância: ${distancia}m do ${localNome}. Aproxime-se para bater ponto.` 
+      })
+    }
+
+    console.log('✅ [PONTO] Dentro do raio permitido:', localInfo.distancia, 'm')
     
     // Buscar colaborador_id do usuário
     const { data: appUserData, error: appUserError } = await client
@@ -149,6 +192,11 @@ export default defineEventHandler(async (event) => {
 
       if (body.ip) updates.ip_registro = body.ip
       if (body.localizacao) updates.localizacao = body.localizacao
+      updates.latitude = body.latitude
+      updates.longitude = body.longitude
+      updates.local_id = localInfo.local_id
+      updates.distancia_metros = localInfo.distancia
+      updates.fora_do_raio = false // Sempre false pois já validamos acima
 
       const { data, error } = await (client
         .from('registros_ponto') as any)
@@ -179,6 +227,11 @@ export default defineEventHandler(async (event) => {
           entrada_1: agora,
           ip_registro: body.ip || null,
           localizacao: body.localizacao || null,
+          latitude: body.latitude,
+          longitude: body.longitude,
+          local_id: localInfo.local_id,
+          distancia_metros: localInfo.distancia,
+          fora_do_raio: false, // Sempre false pois já validamos acima
           status: 'Normal'
         })
         .select()

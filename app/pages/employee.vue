@@ -23,12 +23,11 @@
         class="mb-6"
       />
 
-      <!-- Registro de Ponto Rápido -->
+      <!-- Registro de Ponto Rápido com GPS -->
       <EmployeeRegistroPontoCard
         :data-hora-atual="dataHoraAtual"
-        :loading="registrandoPonto"
         :ultimo-registro="ultimoRegistro"
-        @registrar="handleRegistrarPonto"
+        @sucesso="handlePontoSucesso"
         class="mb-8"
       />
 
@@ -192,21 +191,11 @@ const dataHoraAtual = computed(() => {
   })
 })
 
-const handleRegistrarPonto = async () => {
-  registrandoPonto.value = true
-  try {
-    const result = await registrarPonto()
-    ultimoRegistro.value = `${result.tipo.replace('_', ' ')} às ${result.horario}`
-    
-    // Recarregar registros de ponto para atualizar o contador
-    await fetchPonto()
-    
-    alert('Ponto registrado com sucesso!')
-  } catch (e: any) {
-    alert(e.message || 'Erro ao registrar ponto')
-  } finally {
-    registrandoPonto.value = false
-  }
+const handlePontoSucesso = async (data: any) => {
+  ultimoRegistro.value = data.message || 'Ponto registrado com sucesso!'
+  
+  // Recarregar registros de ponto para atualizar o contador
+  await fetchPonto()
 }
 
 const handleNovaSolicitacao = async (dados: any) => {
