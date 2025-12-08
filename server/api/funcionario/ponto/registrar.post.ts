@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   // O Supabase retorna o ID no campo 'sub', não 'id'
-  const userId = user?.id || user?.sub
+  const userId = user?.sub || user?.id
   
   console.log('🔍 [PONTO] User object:', user)
   console.log('🔍 [PONTO] User ID (id):', user?.id)
@@ -26,9 +26,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    console.log('🔍 [PONTO] Iniciando registro de ponto')
+    console.log('🔍 [PONTO] ========== INÍCIO ==========')
     console.log('🔍 [PONTO] User ID:', userId)
-    console.log('🔍 [PONTO] User email:', user.email)
+    console.log('🔍 [PONTO] User email:', user?.email)
+    console.log('🔍 [PONTO] Body:', body)
     
     // Buscar colaborador_id do usuário
     const { data: appUserData, error: appUserError } = await client
@@ -37,22 +38,35 @@ export default defineEventHandler(async (event) => {
       .eq('auth_uid', userId)
       .single()
 
-    console.log('🔍 [PONTO] App User Data:', appUserData)
+    console.log('🔍 [PONTO] App User Data:', JSON.stringify(appUserData, null, 2))
     console.log('🔍 [PONTO] App User Error:', appUserError)
-
-    const appUser = appUserData as { id: string; colaborador_id: string | null; role: string } | null
 
     if (appUserError) {
       console.error('❌ [PONTO] Erro ao buscar app_user:', appUserError)
-      throw createError({ statusCode: 400, message: `Erro ao buscar dados do usuário: ${appUserError.message}` })
+      throw createError({ 
+        statusCode: 400, 
+        message: `Erro ao buscar dados do usuário: ${appUserError.message}`,
+        data: { error: appUserError }
+      })
     }
 
-    if (!appUser?.colaborador_id) {
+    const appUser = appUserData as { id: string; colaborador_id: string | null; role: string } | null
+
+    if (!appUser) {
+      console.error('❌ [PONTO] App user não encontrado')
+      throw createError({ statusCode: 404, message: 'Usuário não encontrado no sistema' })
+    }
+
+    if (!appUser.colaborador_id) {
       console.error('❌ [PONTO] Usuário sem colaborador_id')
-      throw createError({ statusCode: 400, message: 'Usuário não vinculado a um colaborador. Contate o RH.' })
+      console.error('❌ [PONTO] App User completo:', appUser)
+      throw createError({ 
+        statusCode: 400, 
+        message: 'Usuário não vinculado a um colaborador. Execute o FIX_HOLERITES_USUARIO.sql no banco de dados.' 
+      })
     }
 
-    console.log('🔍 [PONTO] Colaborador ID:', appUser.colaborador_id)
+    console.log('✅ [PONTO] Colaborador ID:', appUser.colaborador_id)
 
     // Buscar empresa_id do colaborador
     const { data: colabData, error: colabError } = await client
@@ -61,17 +75,32 @@ export default defineEventHandler(async (event) => {
       .eq('id', appUser.colaborador_id)
       .single()
 
-    console.log('🔍 [PONTO] Colaborador Data:', colabData)
+    console.log('🔍 [PONTO] Colaborador Data:', JSON.stringify(colabData, null, 2))
     console.log('🔍 [PONTO] Colaborador Error:', colabError)
+
+    if (colabError) {
+      console.error('❌ [PONTO] Erro ao buscar colaborador:', colabError)
+      throw createError({ 
+        statusCode: 400, 
+        message: `Erro ao buscar colaborador: ${colabError.message}`,
+        data: { error: colabError }
+      })
+    }
 
     const colaborador = colabData as { empresa_id: string; nome: string } | null
 
-    if (colabError || !colaborador?.empresa_id) {
-      console.error('❌ [PONTO] Erro ao buscar colaborador:', colabError)
-      throw createError({ statusCode: 400, message: `Colaborador não vinculado a uma empresa: ${colabError?.message || 'empresa_id null'}` })
+    if (!colaborador) {
+      console.error('❌ [PONTO] Colaborador não encontrado')
+      throw createError({ statusCode: 404, message: 'Colaborador não encontrado' })
+    }
+
+    if (!colaborador.empresa_id) {
+      console.error('❌ [PONTO] Colaborador sem empresa_id')
+      throw createError({ statusCode: 400, message: 'Colaborador não vinculado a uma empresa' })
     }
     
     const empresaId = colaborador.empresa_id
+    console.log('✅ [PONTO] Empresa ID:', empresaId)
 
     const hoje = new Date().toISOString().split('T')[0]
     const agora = new Date().toTimeString().split(' ')[0].substring(0, 5)
@@ -168,7 +197,17 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (e: any) {
-    console.error('Erro ao registrar ponto:', e)
-    throw createError({ statusCode: e.statusCode || 500, message: e.message || 'Erro ao registrar ponto' })
+    console.error('❌ [PONTO] ========== ERRO ==========')
+    console.error('❌ [PONTO] Erro completo:', e)
+    console.error('❌ [PONTO] Stack:', e.stack)
+    console.error('❌ [PONTO] StatusCode:', e.statusCode)
+    console.error('❌ [PONTO] Message:', e.message)
+    console.error('❌ [PONTO] Data:', e.data)
+    
+    throw createError({ 
+      statusCode: e.statusCode || 500, 
+      message: e.message || 'Erro ao registrar ponto',
+      data: e.data
+    })
   }
 })
