@@ -6,18 +6,24 @@ export default defineEventHandler(async (event) => {
     const supabaseAdmin = serverSupabaseServiceRole(event)
     const query = getQuery(event)
     
-    // Permitir especificar colaborador via query parameter
+    // Permitir acesso público com parâmetros
     const colaboradorId = query.colaborador_id as string
+    const mes = query.mes ? parseInt(query.mes as string) : new Date().getMonth() + 1
+    const ano = query.ano ? parseInt(query.ano as string) : new Date().getFullYear()
     
-    console.log('🔍 Gerando PDF para colaborador:', colaboradorId || 'CARLOS (padrão)')
+    console.log('🔍 [PÚBLICO] Gerando PDF para:', { colaboradorId, mes, ano })
 
-    // Se não especificar colaborador, usar CARLOS como padrão
-    const targetColaboradorId = colaboradorId || 'c79f679a-147a-47c1-9344-83833507adb0'
+    if (!colaboradorId) {
+      throw createError({
+        statusCode: 400,
+        message: 'ID do colaborador é obrigatório'
+      })
+    }
     
     const { data: colaborador } = await supabaseAdmin
       .from('colaboradores')
       .select('id, nome, matricula, cargo:cargos(nome), departamento:departamentos(nome)')
-      .eq('id', targetColaboradorId)
+      .eq('id', colaboradorId)
       .single()
 
     if (!colaborador) {
@@ -29,10 +35,9 @@ export default defineEventHandler(async (event) => {
 
     console.log('📋 Gerando PDF para colaborador:', colaborador.nome)
 
-    // Buscar registros dos últimos 30 dias
-    const dataFim = new Date()
-    const dataInicio = new Date()
-    dataInicio.setDate(dataFim.getDate() - 30)
+    // Buscar registros do mês especificado
+    const dataInicio = new Date(ano, mes - 1, 1)
+    const dataFim = new Date(ano, mes, 0)
 
     const { data: registros } = await supabaseAdmin
       .from('registros_ponto')
@@ -42,22 +47,19 @@ export default defineEventHandler(async (event) => {
       .lte('data', dataFim.toISOString().split('T')[0])
       .order('data', { ascending: true })
 
-    // Buscar assinatura digital do período atual
-    const mesAtual = new Date().getMonth() + 1
-    const anoAtual = new Date().getFullYear()
-    
+    // Buscar assinatura digital do período
     console.log('🔍 Buscando assinatura para:', {
       colaborador_id: colaborador.id,
-      mes: mesAtual,
-      ano: anoAtual
+      mes,
+      ano
     })
     
     const { data: assinatura, error: assinaturaError } = await supabaseAdmin
       .from('assinaturas_ponto')
       .select('*')
       .eq('colaborador_id', colaborador.id)
-      .eq('mes', mesAtual)
-      .eq('ano', anoAtual)
+      .eq('mes', mes)
+      .eq('ano', ano)
       .maybeSingle()
     
     console.log('📝 Assinatura encontrada:', assinatura)
@@ -144,7 +146,7 @@ export default defineEventHandler(async (event) => {
     doc.text(`Matrícula: ${colaborador.matricula}`, 50, doc.y)
     doc.text(`Cargo: ${colaborador.cargo?.nome || 'N/A'}`, 50, doc.y)
     doc.text(`Departamento: ${colaborador.departamento?.nome || 'N/A'}`, 50, doc.y)
-    doc.text(`Período: ${dataInicio.toLocaleDateString('pt-BR')} a ${dataFim.toLocaleDateString('pt-BR')}`, 50, doc.y)
+    doc.text(`Período: ${String(mes).padStart(2, '0')}/${ano}`, 50, doc.y)
     doc.moveDown()
 
     // Tabela de registros
@@ -231,6 +233,7 @@ export default defineEventHandler(async (event) => {
     doc.fontSize(8)
     doc.text(`Relatório gerado em: ${new Date().toLocaleString('pt-BR')}`, 50, doc.y)
     doc.text('Sistema de Ponto Eletrônico - Qualitec', 50, doc.y)
+    doc.text('🔓 Acesso público autorizado', 50, doc.y, { align: 'right' })
 
     doc.end()
 
@@ -238,17 +241,20 @@ export default defineEventHandler(async (event) => {
 
     setResponseHeaders(event, {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="relatorio_ponto_${colaborador.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf"`,
-      'Content-Length': pdfBuffer.length.toString()
+      'Content-Disposition': `attachment; filename="ponto_${colaborador.nome.replace(/\s+/g, '_')}_${mes}_${ano}.pdf"`,
+      'Content-Length': pdfBuffer.length.toString(),
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
     })
     
     return pdfBuffer
 
   } catch (error: any) {
-    console.error('Erro ao gerar PDF:', error)
+    console.error('Erro ao gerar PDF público:', error)
     throw createError({
       statusCode: 500,
-      message: 'Erro ao gerar relatório PDF'
+      message: 'Erro ao gerar relatório PDF: ' + error.message
     })
   }
 })

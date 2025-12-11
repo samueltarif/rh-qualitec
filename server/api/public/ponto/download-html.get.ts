@@ -5,18 +5,24 @@ export default defineEventHandler(async (event) => {
     const supabaseAdmin = serverSupabaseServiceRole(event)
     const query = getQuery(event)
     
-    // Permitir especificar colaborador via query parameter
+    // Permitir acesso público com parâmetros
     const colaboradorId = query.colaborador_id as string
+    const mes = query.mes ? parseInt(query.mes as string) : new Date().getMonth() + 1
+    const ano = query.ano ? parseInt(query.ano as string) : new Date().getFullYear()
     
-    console.log('🔍 Gerando relatório HTML para colaborador:', colaboradorId || 'CARLOS (padrão)')
+    console.log('🔍 [PÚBLICO HTML] Gerando relatório para:', { colaboradorId, mes, ano })
 
-    // Se não especificar colaborador, usar CARLOS como padrão
-    const targetColaboradorId = colaboradorId || 'c79f679a-147a-47c1-9344-83833507adb0'
+    if (!colaboradorId) {
+      throw createError({
+        statusCode: 400,
+        message: 'ID do colaborador é obrigatório'
+      })
+    }
     
     const { data: colaborador } = await supabaseAdmin
       .from('colaboradores')
       .select('id, nome, matricula, cargo:cargos(nome), departamento:departamentos(nome)')
-      .eq('id', targetColaboradorId)
+      .eq('id', colaboradorId)
       .single()
 
     if (!colaborador) {
@@ -26,24 +32,20 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Buscar assinatura digital do período atual
-    const mesAtual = new Date().getMonth() + 1
-    const anoAtual = new Date().getFullYear()
-    
+    // Buscar assinatura digital do período
     const { data: assinatura } = await supabaseAdmin
       .from('assinaturas_ponto')
       .select('*')
       .eq('colaborador_id', colaborador.id)
-      .eq('mes', mesAtual)
-      .eq('ano', anoAtual)
-      .single()
+      .eq('mes', mes)
+      .eq('ano', ano)
+      .maybeSingle()
 
     console.log('📋 Gerando relatório para colaborador:', colaborador.nome)
 
-    // Buscar registros dos últimos 30 dias
-    const dataFim = new Date()
-    const dataInicio = new Date()
-    dataInicio.setDate(dataFim.getDate() - 30)
+    // Buscar registros do mês especificado
+    const dataInicio = new Date(ano, mes - 1, 1)
+    const dataFim = new Date(ano, mes, 0)
 
     const { data: registros } = await supabaseAdmin
       .from('registros_ponto')
@@ -126,6 +128,9 @@ export default defineEventHandler(async (event) => {
         th { background-color: #f2f2f2; }
         .summary { margin-top: 20px; font-weight: bold; }
         .footer { margin-top: 30px; font-size: 12px; color: #666; }
+        .assinatura-valida { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .assinatura-pendente { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .hash-box { font-family: monospace; font-size: 10px; word-break: break-all; background: #f5f5f5; padding: 5px; border-radius: 3px; }
         @media print {
             body { margin: 0; }
             .no-print { display: none; }
@@ -142,7 +147,7 @@ export default defineEventHandler(async (event) => {
         <p><strong>Matrícula:</strong> ${colaborador.matricula}</p>
         <p><strong>Cargo:</strong> ${colaborador.cargo?.nome || 'N/A'}</p>
         <p><strong>Departamento:</strong> ${colaborador.departamento?.nome || 'N/A'}</p>
-        <p><strong>Período:</strong> ${dataInicio.toLocaleDateString('pt-BR')} a ${dataFim.toLocaleDateString('pt-BR')}</p>
+        <p><strong>Período:</strong> ${String(mes).padStart(2, '0')}/${ano}</p>
     </div>
     
     <table>
@@ -176,23 +181,23 @@ export default defineEventHandler(async (event) => {
     <div style="margin-top: 30px; border-top: 2px solid #333; padding-top: 20px;">
         <h3>ASSINATURA DIGITAL</h3>
         ${assinatura ? `
-            <div style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 10px 0;">
+            <div class="assinatura-valida">
                 <p><strong>✅ Documento assinado digitalmente</strong></p>
                 <p><strong>Data da Assinatura:</strong> ${new Date(assinatura.data_assinatura).toLocaleString('pt-BR')}</p>
                 <p><strong>Período:</strong> ${String(assinatura.mes).padStart(2, '0')}/${assinatura.ano}</p>
                 <p><strong>IP:</strong> ${assinatura.ip_assinatura || 'N/A'}</p>
                 ${assinatura.hash_assinatura ? `
                     <p><strong>Hash de Verificação:</strong></p>
-                    <p style="font-family: monospace; font-size: 10px; word-break: break-all; background: #f5f5f5; padding: 5px; border-radius: 3px;">
+                    <div class="hash-box">
                         ${assinatura.hash_assinatura}
-                    </p>
+                    </div>
                 ` : ''}
                 <p style="font-style: italic; margin-top: 10px;">
                     Este documento possui validade jurídica conforme MP 2.200-2/2001.
                 </p>
             </div>
         ` : `
-            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 10px 0;">
+            <div class="assinatura-pendente">
                 <p><strong>⚠️ Este documento ainda não foi assinado digitalmente.</strong></p>
                 <p>Para assinar, acesse o sistema e confirme seus registros de ponto.</p>
             </div>
@@ -202,6 +207,7 @@ export default defineEventHandler(async (event) => {
     <div class="footer">
         <p>Relatório gerado em: ${new Date().toLocaleString('pt-BR')}</p>
         <p>Sistema de Ponto Eletrônico - Qualitec</p>
+        <p>🔓 Acesso público autorizado</p>
     </div>
     
     <div class="no-print" style="margin-top: 30px; text-align: center;">
@@ -214,16 +220,19 @@ export default defineEventHandler(async (event) => {
     `
 
     setResponseHeaders(event, {
-      'Content-Type': 'text/html; charset=utf-8'
+      'Content-Type': 'text/html; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
     })
     
     return html
 
   } catch (error: any) {
-    console.error('Erro ao gerar relatório:', error)
+    console.error('Erro ao gerar relatório HTML público:', error)
     throw createError({
       statusCode: 500,
-      message: 'Erro ao gerar relatório'
+      message: 'Erro ao gerar relatório HTML: ' + error.message
     })
   }
 })
