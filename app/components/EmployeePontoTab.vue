@@ -491,6 +491,13 @@ const baixarCSV = async () => {
   baixandoCSV.value = true
   
   try {
+    // Primeiro buscar o ID do colaborador atual
+    const { data: funcionario } = await useFetch('/api/funcionario/perfil')
+    
+    if (!funcionario.value?.appUser?.colaborador_id) {
+      throw new Error('Colaborador não encontrado')
+    }
+    
     const response = await fetch(`/api/funcionario/ponto/download-csv?mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`)
     
     if (!response.ok) {
@@ -520,8 +527,15 @@ const baixarPDF = async () => {
   baixandoPDF.value = true
   
   try {
-    // Abrir relatório HTML em nova janela para impressão/PDF
-    const url = '/api/funcionario/ponto/download-html'
+    // Primeiro buscar o ID do colaborador atual
+    const { data: funcionario } = await useFetch('/api/funcionario/perfil')
+    
+    if (!funcionario.value?.appUser?.colaborador_id) {
+      throw new Error('Colaborador não encontrado')
+    }
+    
+    // Usar API pública que funciona para todos os colaboradores
+    const url = `/api/public/ponto/download-html?colaborador_id=${funcionario.value.appUser.colaborador_id}&mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`
     window.open(url, '_blank')
     
   } catch (error) {
