@@ -57,7 +57,9 @@ export default defineEventHandler(async (event) => {
   // Obter IP do cliente
   const ip = getRequestIP(event, { xForwardedFor: true })
 
-  // Criar assinatura
+  // Criar assinatura - usar fuso horário de São Paulo
+  const dataAssinaturaBR = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  
   const { data: assinatura, error } = await supabase
     .from('assinaturas_ponto')
     .insert({
@@ -68,7 +70,7 @@ export default defineEventHandler(async (event) => {
       arquivo_csv: Buffer.from(csv).toString('base64'),
       total_dias: resumo.diasTrabalhados,
       total_horas: resumo.horasTrabalhadas,
-      observacoes: `Assinado em ${new Date().toLocaleString('pt-BR')}`
+      observacoes: `Assinado em ${dataAssinaturaBR}`
     } as any)
     .select()
     .single() as any
@@ -87,11 +89,14 @@ export default defineEventHandler(async (event) => {
 function gerarCSV(registros: any[], nomeColaborador: string, mes: number, ano: number, resumo: any): string {
   const linhas: string[] = []
   
+  // Usar fuso horário de São Paulo
+  const dataAssinaturaBR = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  
   // Cabeçalho
   linhas.push('REGISTRO DE PONTO ELETRÔNICO')
   linhas.push(`Colaborador: ${nomeColaborador}`)
   linhas.push(`Período: ${mes.toString().padStart(2, '0')}/${ano}`)
-  linhas.push(`Data de Assinatura: ${new Date().toLocaleString('pt-BR')}`)
+  linhas.push(`Data de Assinatura: ${dataAssinaturaBR}`)
   linhas.push('')
   
   // Resumo
@@ -127,7 +132,7 @@ function gerarCSV(registros: any[], nomeColaborador: string, mes: number, ano: n
   linhas.push('')
   linhas.push('DECLARAÇÃO')
   linhas.push('Declaro que os registros acima estão corretos e conferidos.')
-  linhas.push(`Assinado digitalmente em ${new Date().toLocaleString('pt-BR')}`)
+  linhas.push(`Assinado digitalmente em ${dataAssinaturaBR}`)
   
   return linhas.join('\n')
 }

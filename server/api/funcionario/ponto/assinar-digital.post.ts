@@ -116,11 +116,14 @@ export default defineEventHandler(async (event) => {
     const totalHoras = `${horas}h${minutos.toString().padStart(2, '0')}`
 
     // Gerar CSV dos registros com estrutura correta
+    // Usar fuso horário de São Paulo para a data de assinatura
+    const dataAssinaturaBR = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    
     const csvLinhas: string[] = []
     csvLinhas.push('REGISTRO DE PONTO ELETRÔNICO')
     csvLinhas.push(`Colaborador: ${colaborador.nome}`)
     csvLinhas.push(`Período: ${mes.toString().padStart(2, '0')}/${ano}`)
-    csvLinhas.push(`Data de Assinatura: ${new Date().toLocaleString('pt-BR')}`)
+    csvLinhas.push(`Data de Assinatura: ${dataAssinaturaBR}`)
     csvLinhas.push('')
     csvLinhas.push('Data;Entrada 1;Saída 1;Entrada 2;Saída 2;Entrada 3;Saída 3;Total Horas')
     
@@ -170,7 +173,7 @@ export default defineEventHandler(async (event) => {
     csvLinhas.push('')
     csvLinhas.push('DECLARAÇÃO')
     csvLinhas.push('Declaro que os registros acima estão corretos e conferidos.')
-    csvLinhas.push(`Assinado digitalmente em ${new Date().toLocaleString('pt-BR')}`)
+    csvLinhas.push(`Assinado digitalmente em ${dataAssinaturaBR}`)
     
     const csvCompleto = csvLinhas.join('\n')
     const csvBase64 = Buffer.from(csvCompleto, 'utf-8').toString('base64')
