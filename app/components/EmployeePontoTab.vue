@@ -1,20 +1,46 @@
 <template>
   <div>
+    <!-- Aviso de Limite de 30 Dias -->
+    <div v-if="periodoExpirado" class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div class="flex items-start gap-3">
+        <Icon name="heroicons:exclamation-triangle" class="text-amber-600 flex-shrink-0" size="20" />
+        <div>
+          <p class="text-sm font-medium text-amber-800">Período não disponível</p>
+          <p class="text-sm text-amber-700 mt-1">
+            Os registros de ponto ficam disponíveis por apenas 30 dias. Este período já expirou.
+            {{ assinaturaMes ? 'Você pode fazer o download do arquivo assinado abaixo.' : '' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Filtros -->
     <div class="flex flex-wrap items-center gap-4 mb-6">
       <div class="flex items-center gap-2">
         <label class="text-sm text-slate-600">Mês:</label>
-        <select v-model="mesSelecionado" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
-          <option v-for="m in meses" :key="m.value" :value="m.value">{{ m.label }}</option>
+        <select 
+          v-model="mesSelecionado" 
+          class="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          :disabled="loading"
+        >
+          <option v-for="m in mesesDisponiveis" :key="m.value" :value="m.value">{{ m.label }}</option>
         </select>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm text-slate-600">Ano:</label>
-        <select v-model="anoSelecionado" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+        <select 
+          v-model="anoSelecionado" 
+          class="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+          :disabled="loading"
+        >
           <option v-for="a in anos" :key="a" :value="a">{{ a }}</option>
         </select>
       </div>
-      <button @click="buscar" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700">
+      <button 
+        @click="buscar" 
+        class="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700 disabled:opacity-50"
+        :disabled="loading"
+      >
         <Icon name="heroicons:magnifying-glass" size="16" class="mr-1" />
         Buscar
       </button>
@@ -125,6 +151,114 @@
         <p class="text-xl font-bold text-red-700">{{ resumo.faltas }}</p>
       </div>
     </div>
+
+    <!-- Alerta de Renovação -->
+    <div v-if="precisaRenovarAssinatura" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div class="flex items-center">
+        <Icon name="heroicons:exclamation-triangle" class="w-5 h-5 text-amber-600 mr-2" />
+        <div>
+          <h4 class="text-amber-800 font-medium">Renovação de Assinatura Necessária</h4>
+          <p class="text-amber-700 text-sm mt-1">É necessário renovar sua assinatura digital para este mês. Clique em "Assinar Ponto do Mês" abaixo.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção de Assinatura do Ponto -->
+    <div v-if="registros.length > 0 && !periodoExpirado" class="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-slate-800 mb-2">Assinatura do Ponto</h3>
+          <p class="text-sm text-slate-600 mb-4">
+            Ao assinar, você confirma que os registros de ponto estão corretos. 
+            O arquivo CSV ficará disponível para download.
+          </p>
+          
+          <div v-if="assinaturaMes" class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <Icon name="heroicons:check-circle" class="text-green-600" size="24" />
+            <div class="flex-1">
+              <p class="text-sm font-medium text-green-800">Ponto assinado em {{ formatarDataAssinatura(assinaturaMes.data_assinatura) }}</p>
+              <p class="text-xs text-green-700 mt-1">{{ assinaturaMes.total_dias }} dias trabalhados • {{ assinaturaMes.total_horas }}</p>
+            </div>
+            <div class="flex gap-2">
+              <button 
+                @click="baixarPDF"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 flex items-center gap-2"
+                :disabled="baixandoPDF"
+              >
+                <Icon name="heroicons:document-text" size="16" />
+                {{ baixandoPDF ? 'Gerando...' : 'PDF (30 dias)' }}
+              </button>
+              
+              <button 
+                @click="baixarCSV"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2"
+                :disabled="baixandoCSV"
+              >
+                <Icon name="heroicons:arrow-down-tray" size="16" />
+                {{ baixandoCSV ? 'Baixando...' : 'Baixar CSV' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="flex items-center gap-3">
+            <button 
+              @click="assinarPonto"
+              class="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              :disabled="assinando"
+            >
+              <Icon name="heroicons:pencil-square" size="20" />
+              {{ assinando ? 'Assinando...' : 'Assinar Ponto do Mês' }}
+            </button>
+            <p class="text-xs text-slate-500">
+              Disponível até {{ dataLimiteVisualizacao }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download de Assinatura Antiga -->
+    <div v-if="periodoExpirado && assinaturaMes" class="mt-6 p-6 bg-slate-50 border border-slate-200 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800 mb-1">Arquivo Assinado</h3>
+          <p class="text-sm text-slate-600">
+            Assinado em {{ formatarDataAssinatura(assinaturaMes.data_assinatura) }} • 
+            {{ assinaturaMes.total_dias }} dias • {{ assinaturaMes.total_horas }}
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button 
+            @click="baixarPDF"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 flex items-center gap-2"
+            :disabled="baixandoPDF"
+          >
+            <Icon name="heroicons:document-text" size="16" />
+            {{ baixandoPDF ? 'Gerando...' : 'PDF (30 dias)' }}
+          </button>
+          
+          <button 
+            @click="baixarCSV"
+            class="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700 flex items-center gap-2"
+            :disabled="baixandoCSV"
+          >
+            <Icon name="heroicons:arrow-down-tray" size="16" />
+            {{ baixandoCSV ? 'Baixando...' : 'Baixar CSV' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Assinatura Digital -->
+    <ModalAssinaturaDigital
+      v-if="mostrarModalAssinatura"
+      :mes="mesSelecionado"
+      :ano="anoSelecionado"
+      :total-dias="resumo.diasTrabalhados"
+      :total-horas="resumo.horasTrabalhadas"
+      @close="mostrarModalAssinatura = false"
+      @assinado="onAssinado"
+    />
   </div>
 </template>
 
@@ -150,6 +284,11 @@ const { calcularHoras: calcularHorasComTempoReal, horaAtual, temRegistroEmAndame
 const hoje = new Date()
 const mesSelecionado = ref(hoje.getMonth() + 1)
 const anoSelecionado = ref(hoje.getFullYear())
+const assinando = ref(false)
+const baixandoCSV = ref(false)
+const baixandoPDF = ref(false)
+const assinaturaMes = ref<any>(null)
+const precisaRenovarAssinatura = ref(false)
 
 const meses = [
   { value: 1, label: 'Janeiro' },
@@ -169,6 +308,38 @@ const meses = [
 const anos = computed(() => {
   const anoAtual = new Date().getFullYear()
   return [anoAtual - 1, anoAtual, anoAtual + 1]
+})
+
+// Verificar se o período está dentro dos 30 dias
+const periodoExpirado = computed(() => {
+  const dataAtual = new Date()
+  const ultimoDiaMes = new Date(anoSelecionado.value, mesSelecionado.value, 0)
+  const diferencaDias = Math.floor((dataAtual.getTime() - ultimoDiaMes.getTime()) / (1000 * 60 * 60 * 24))
+  return diferencaDias > 30
+})
+
+// Filtrar meses disponíveis (últimos 30 dias)
+const mesesDisponiveis = computed(() => {
+  const dataAtual = new Date()
+  const mesAtual = dataAtual.getMonth() + 1
+  const anoAtual = dataAtual.getFullYear()
+  
+  return meses.filter(m => {
+    if (anoSelecionado.value < anoAtual) return false
+    if (anoSelecionado.value > anoAtual) return false
+    
+    const ultimoDiaMes = new Date(anoAtual, m.value, 0)
+    const diferencaDias = Math.floor((dataAtual.getTime() - ultimoDiaMes.getTime()) / (1000 * 60 * 60 * 24))
+    return diferencaDias <= 30
+  })
+})
+
+// Data limite para visualização
+const dataLimiteVisualizacao = computed(() => {
+  const ultimoDiaMes = new Date(anoSelecionado.value, mesSelecionado.value, 0)
+  const dataLimite = new Date(ultimoDiaMes)
+  dataLimite.setDate(dataLimite.getDate() + 30)
+  return dataLimite.toLocaleDateString('pt-BR')
 })
 
 const resumo = computed(() => {
@@ -254,5 +425,126 @@ const getStatusClass = (status: string) => {
     'Ajustado': 'bg-orange-100 text-orange-700',
   }
   return classes[status] || 'bg-slate-100 text-slate-700'
+}
+
+// Definir função antes do watch
+const carregarAssinatura = async () => {
+  try {
+    const { data } = await useFetch('/api/funcionario/ponto/assinatura', {
+      params: {
+        mes: mesSelecionado.value,
+        ano: anoSelecionado.value
+      }
+    })
+    assinaturaMes.value = data.value
+    
+    // Verificar se precisa renovar assinatura (apenas para mês atual)
+    const hoje = new Date()
+    if (mesSelecionado.value === hoje.getMonth() + 1 && anoSelecionado.value === hoje.getFullYear()) {
+      await verificarRenovacaoAssinatura()
+    }
+  } catch (error) {
+    console.error('Erro ao carregar assinatura:', error)
+  }
+}
+
+// Carregar assinatura do mês ao mudar período
+watch([mesSelecionado, anoSelecionado], async () => {
+  await carregarAssinatura()
+}, { immediate: true })
+
+// Estados para modal de assinatura
+const mostrarModalAssinatura = ref(false)
+
+const assinarPonto = () => {
+  mostrarModalAssinatura.value = true
+}
+
+const onAssinado = (response: any) => {
+  console.log('Resposta da assinatura:', response)
+  
+  // A API retorna { success: true, assinatura: {...} }
+  if (response && response.assinatura) {
+    assinaturaMes.value = response.assinatura
+  } else if (response && response.success) {
+    // Se não tem assinatura mas foi sucesso, recarregar dados
+    carregarAssinaturaMes()
+  }
+  
+  alert('Ponto assinado com sucesso! Você pode fazer o download do arquivo CSV.')
+}
+
+const formatarDataAssinatura = (data: string) => {
+  if (!data) return '-'
+  return new Date(data).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const baixarCSV = async () => {
+  if (baixandoCSV.value || !assinaturaMes.value) return
+  
+  baixandoCSV.value = true
+  
+  try {
+    const response = await fetch(`/api/funcionario/ponto/download-csv?mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`)
+    
+    if (!response.ok) {
+      throw new Error('Erro ao baixar arquivo')
+    }
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ponto_${mesSelecionado.value.toString().padStart(2, '0')}_${anoSelecionado.value}.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('Erro ao baixar CSV:', error)
+    alert('Erro ao baixar arquivo. Tente novamente.')
+  } finally {
+    baixandoCSV.value = false
+  }
+}
+
+const baixarPDF = async () => {
+  if (baixandoPDF.value) return
+  
+  baixandoPDF.value = true
+  
+  try {
+    // Abrir relatório HTML em nova janela para impressão/PDF
+    const url = '/api/funcionario/ponto/download-html'
+    window.open(url, '_blank')
+    
+  } catch (error) {
+    console.error('Erro ao abrir relatório:', error)
+    alert('Erro ao gerar relatório. Tente novamente.')
+  } finally {
+    baixandoPDF.value = false
+  }
+}
+
+const verificarRenovacaoAssinatura = async () => {
+  try {
+    const response = await $fetch('/api/funcionario/ponto/renovar-assinatura', {
+      method: 'POST'
+    })
+    
+    if (response.precisaAssinar) {
+      precisaRenovarAssinatura.value = true
+      // Mostrar notificação para o usuário
+      console.log('É necessário renovar sua assinatura digital para este mês.')
+    }
+  } catch (error) {
+    console.error('Erro ao verificar renovação:', error)
+  }
 }
 </script>

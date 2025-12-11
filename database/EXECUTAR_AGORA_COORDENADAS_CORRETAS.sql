@@ -53,7 +53,7 @@ VALUES (
   'WeWork Sala Comercial & Coworking - Av. Nicolas Bôer, 399',
   -23.5197977,
   -46.6796206,
-  100,  -- 100 metros de raio
+  50,  -- 100 metros de raio
   true
 );
 

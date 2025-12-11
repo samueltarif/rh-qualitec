@@ -27,15 +27,15 @@
       <div class="space-y-2 mb-4">
         <div class="flex justify-between text-sm">
           <span class="text-gray-600">Salário Bruto</span>
-          <span class="font-semibold text-gray-800">{{ formatCurrency(holerite.salario_bruto) }}</span>
+          <span class="font-semibold text-gray-800">{{ formatCurrency(calcularSalarioBruto()) }}</span>
         </div>
         <div class="flex justify-between text-sm">
           <span class="text-gray-600">Descontos</span>
-          <span class="font-semibold text-red-600">-{{ formatCurrency(holerite.total_descontos) }}</span>
+          <span class="font-semibold text-red-600">-{{ formatCurrency(calcularTotalDescontos()) }}</span>
         </div>
         <div class="flex justify-between pt-2 border-t">
           <span class="font-bold text-gray-800">Líquido</span>
-          <span class="font-bold text-green-600">{{ formatCurrency(holerite.salario_liquido) }}</span>
+          <span class="font-bold text-green-600">{{ formatCurrency(calcularSalarioLiquido()) }}</span>
         </div>
       </div>
 
@@ -78,12 +78,42 @@ interface Holerite {
   mes: number
   ano: number
   nome_colaborador: string
+  salario_base: number
   salario_bruto: number
   total_descontos: number
   salario_liquido: number
   status: string
   tipo?: string
   parcela_13?: string
+  // Proventos
+  valor_horas_extras_50?: number
+  valor_horas_extras_100?: number
+  bonus?: number
+  comissoes?: number
+  adicional_insalubridade?: number
+  adicional_periculosidade?: number
+  adicional_noturno?: number
+  outros_proventos?: number
+  // Descontos
+  inss?: number
+  irrf?: number
+  adiantamento?: number
+  emprestimos?: number
+  faltas?: number
+  atrasos?: number
+  plano_saude?: number
+  plano_odontologico?: number
+  seguro_vida?: number
+  auxilio_creche?: number
+  auxilio_educacao?: number
+  auxilio_combustivel?: number
+  outros_beneficios?: number
+  outros_descontos?: number
+  // Itens personalizados
+  itens_personalizados?: Array<{
+    tipo: 'provento' | 'desconto'
+    valor: number
+  }>
 }
 
 interface Props {
@@ -91,7 +121,7 @@ interface Props {
   showDelete?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits(['visualizar', 'excluir'])
 
 const nomeMes = (mes: number) => {
@@ -124,5 +154,59 @@ const getStatusLabel = (status: string) => {
     cancelado: 'Cancelado'
   }
   return labels[status] || status
+}
+
+const calcularSalarioBruto = () => {
+  let total = props.holerite.salario_base || 0
+  total += props.holerite.valor_horas_extras_50 || 0
+  total += props.holerite.valor_horas_extras_100 || 0
+  total += props.holerite.bonus || 0
+  total += props.holerite.comissoes || 0
+  total += props.holerite.adicional_insalubridade || 0
+  total += props.holerite.adicional_periculosidade || 0
+  total += props.holerite.adicional_noturno || 0
+  total += props.holerite.outros_proventos || 0
+  
+  // Itens personalizados - proventos
+  const itensPersonalizados = props.holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'provento')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularTotalDescontos = () => {
+  let total = 0
+  total += props.holerite.inss || 0
+  total += props.holerite.irrf || 0
+  total += props.holerite.adiantamento || 0
+  total += props.holerite.emprestimos || 0
+  total += props.holerite.faltas || 0
+  total += props.holerite.atrasos || 0
+  total += props.holerite.plano_saude || 0
+  total += props.holerite.plano_odontologico || 0
+  total += props.holerite.seguro_vida || 0
+  total += props.holerite.auxilio_creche || 0
+  total += props.holerite.auxilio_educacao || 0
+  total += props.holerite.auxilio_combustivel || 0
+  total += props.holerite.outros_beneficios || 0
+  total += props.holerite.outros_descontos || 0
+  
+  // Itens personalizados - descontos
+  const itensPersonalizados = props.holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'desconto')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularSalarioLiquido = () => {
+  return calcularSalarioBruto() - calcularTotalDescontos()
 }
 </script>

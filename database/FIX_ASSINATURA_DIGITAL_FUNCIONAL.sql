@@ -1,0 +1,97 @@
+-- ============================================
+-- SISTEMA DE ASSINATURA DIGITAL - FUNCIONAL
+-- ============================================
+
+-- 1. Criar tabela de assinaturas se não existir
+CREATE TABLE IF NOT EXISTS assinaturas_ponto (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  colaborador_id UUID NOT NULL REFERENCES colaboradores(id) ON DELETE CASCADE,
+  mes INTEGER NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  ano INTEGER NOT NULL CHECK (ano >= 2020 AND ano <= 2100),
+  data_assinatura TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  ip_assinatura VARCHAR(50),
+  assinatura_digital TEXT,
+  arquivo_csv TEXT,
+  total_dias INTEGER NOT NULL DEFAULT 0,
+  total_horas VARCHAR(20),
+  observacoes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(colaborador_id, mes, ano)
+);
+
+-- 2. Índices para performance
+CREATE INDEX IF NOT EXISTS idx_assinaturas_ponto_colaborador ON assinaturas_ponto(colaborador_id);
+CREATE INDEX IF NOT EXISTS idx_assinaturas_ponto_periodo ON assinaturas_ponto(ano, mes);
+CREATE INDEX IF NOT EXISTS idx_assinaturas_ponto_data ON assinaturas_ponto(data_assinatura);
+
+-- 3. Habilitar RLS
+ALTER TABLE assinaturas_ponto ENABLE ROW LEVEL SECURITY;
+
+-- 4. Remover políticas existentes se existirem
+DROP POLICY IF EXISTS "Funcionários podem ver suas assinaturas" ON assinaturas_ponto;
+DROP POLICY IF EXISTS "Funcionários podem criar assinaturas" ON assinaturas_ponto;
+DROP POLICY IF EXISTS "Funcionários podem atualizar assinaturas" ON assinaturas_ponto;
+DROP POLICY IF EXISTS "Admins podem ver todas assinaturas" ON assinaturas_ponto;
+DROP POLICY IF EXISTS "Admins podem gerenciar assinaturas" ON assinaturas_ponto;
+
+-- 5. Criar políticas RLS
+-- Funcionários podem ver apenas suas próprias assinaturas
+CREATE POLICY "Funcionários podem ver suas assinaturas"
+  ON assinaturas_ponto FOR SELECT
+  USING (
+    colaborador_id IN (
+      SELECT id FROM colaboradores 
+      WHERE auth_uid = auth.uid()
+    )
+  );
+
+-- Funcionários podem criar suas próprias assinaturas
+CREATE POLICY "Funcionários podem criar assinaturas"
+  ON assinaturas_ponto FOR INSERT
+  WITH CHECK (
+    colaborador_id IN (
+      SELECT id FROM colaboradores 
+      WHERE auth_uid = auth.uid()
+    )
+  );
+
+-- Funcionários podem atualizar suas próprias assinaturas
+CREATE POLICY "Funcionários podem atualizar assinaturas"
+  ON assinaturas_ponto FOR UPDATE
+  USING (
+    colaborador_id IN (
+      SELECT id FROM colaboradores 
+      WHERE auth_uid = auth.uid()
+    )
+  );
+
+-- Admins podem ver todas as assinaturas
+CREATE POLICY "Admins podem ver todas assinaturas"
+  ON assinaturas_ponto FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM app_users 
+      WHERE auth_uid = auth.uid() 
+      AND role IN ('admin', 'super_admin')
+    )
+  );
+
+-- Admins podem gerenciar todas as assinaturas
+CREATE POLICY "Admins podem gerenciar assinaturas"
+  ON assinaturas_ponto FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM app_users 
+      WHERE auth_uid = auth.uid() 
+      AND role IN ('admin', 'super_admin')
+    )
+  );
+
+-- 6. Comentários
+COMMENT ON TABLE assinaturas_ponto IS 'Armazena assinaturas digitais mensais de ponto dos funcionários';
+COMMENT ON COLUMN assinaturas_ponto.assinatura_digital IS 'Assinatura digital em base64';
+COMMENT ON COLUMN assinaturas_ponto.arquivo_csv IS 'Conteúdo do arquivo CSV em base64 para download';
+
+-- 7. Verificação final
+SELECT 'Tabela assinaturas_ponto configurada com sucesso!' as resultado;

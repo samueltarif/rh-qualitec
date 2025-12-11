@@ -14,6 +14,7 @@
           </div>
           <div class="flex items-center gap-3">
             <UIButton variant="outline" icon-left="heroicons:arrow-down-tray" size="sm" @click="exportarRelatorio">Exportar</UIButton>
+            <UIButton variant="outline" icon-left="heroicons:document-text" size="sm" @click="abrirModalAssinaturas">Assinaturas</UIButton>
             <UIButton icon-left="heroicons:plus" size="sm" @click="abrirModalNovo">Novo Registro</UIButton>
             <UserProfileDropdown theme="admin" />
           </div>
@@ -314,6 +315,98 @@
         </div>
       </template>
     </UIModal>
+
+    <!-- Modal de Assinaturas -->
+    <UIModal v-model="showModalAssinaturas" title="Gerenciar Assinaturas de Ponto" size="lg">
+      <div class="space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-start gap-2">
+            <Icon name="heroicons:information-circle" class="text-blue-600 mt-0.5" size="20" />
+            <div>
+              <p class="text-sm font-medium text-blue-900 mb-1">Como funciona:</p>
+              <ul class="text-sm text-blue-800 space-y-1">
+                <li>• Colaboradores podem baixar ponto dos últimos 30 dias</li>
+                <li>• Após assinar, o histórico fica bloqueado até o próximo período</li>
+                <li>• Você pode zerar a assinatura para liberar novo download</li>
+                <li>• Útil quando colaborador assina antes do prazo (ex: dia 20 ao invés do dia 5)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="assinaturas.length === 0" class="text-center py-8">
+          <Icon name="heroicons:document-text" class="text-gray-300 mx-auto mb-2" size="48" />
+          <p class="text-gray-500">Nenhuma assinatura encontrada</p>
+        </div>
+
+        <div v-else class="space-y-3">
+          <div v-for="assinatura in assinaturas" :key="assinatura.id" class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <Icon name="heroicons:user" class="text-gray-500" size="20" />
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-800">{{ assinatura.colaborador?.nome || 'N/A' }}</p>
+                    <p class="text-sm text-gray-500">{{ assinatura.colaborador?.departamento?.nome || '' }}</p>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-500">Data da Assinatura:</span>
+                    <p class="font-medium">{{ formatarData(assinatura.data_assinatura) }}</p>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Período:</span>
+                    <p class="font-medium">{{ meses[assinatura.mes - 1] }}/{{ assinatura.ano }}</p>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">IP:</span>
+                    <p class="font-medium font-mono text-xs">{{ assinatura.ip_assinatura || 'N/A' }}</p>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Criado em:</span>
+                    <p class="font-medium">{{ formatarData(assinatura.created_at) }}</p>
+                  </div>
+                </div>
+
+                <div v-if="assinatura.hash_assinatura" class="mt-2">
+                  <span class="text-gray-500 text-sm">Hash:</span>
+                  <p class="font-mono text-xs text-gray-600 break-all">{{ assinatura.hash_assinatura }}</p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 ml-4">
+                <button 
+                  @click="zerarAssinatura(assinatura)"
+                  class="px-3 py-1.5 text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors"
+                  title="Zerar assinatura - permite novo download"
+                >
+                  <Icon name="heroicons:arrow-path" size="16" class="inline mr-1" />
+                  Zerar
+                </button>
+                <button 
+                  @click="excluirAssinatura(assinatura)"
+                  class="px-3 py-1.5 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
+                  title="Excluir assinatura permanentemente"
+                >
+                  <Icon name="heroicons:trash" size="16" class="inline mr-1" />
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="flex justify-end">
+          <UIButton variant="outline" @click="showModalAssinaturas = false">Fechar</UIButton>
+        </div>
+      </template>
+    </UIModal>
   </div>
 </template>
 
@@ -331,10 +424,12 @@ const anos = [anoAtual - 1, anoAtual, anoAtual + 1]
 const loading = ref(false)
 const salvando = ref(false)
 const showModal = ref(false)
+const showModalAssinaturas = ref(false)
 const modoEdicao = ref(false)
 const horaAtual = ref('')
 const registros = ref<any[]>([])
 const colaboradores = ref<any[]>([])
+const assinaturas = ref<any[]>([])
 const registroSelecionado = ref<any>(null)
 const stats = ref({ totalHoje: 0, totalMes: 0, pendentes: 0, faltas: 0 })
 const filtros = ref({ 
@@ -381,6 +476,43 @@ const atualizarHora = () => {
 
 const carregarDados = async () => { 
   await Promise.all([buscarRegistros(), buscarColaboradores(), buscarStats()]) 
+}
+
+const abrirModalAssinaturas = async () => {
+  await buscarAssinaturas()
+  showModalAssinaturas.value = true
+}
+
+const buscarAssinaturas = async () => {
+  try {
+    assinaturas.value = await $fetch('/api/admin/assinaturas-ponto')
+  } catch (e) {
+    console.error('Erro ao buscar assinaturas:', e)
+  }
+}
+
+const zerarAssinatura = async (assinatura: any) => {
+  if (!confirm(`Zerar assinatura de ${assinatura.colaborador?.nome}?\n\nIsso permitirá que o colaborador baixe novamente os últimos 30 dias de ponto.`)) return
+  
+  try {
+    await $fetch(`/api/admin/assinaturas-ponto/${assinatura.id}/zerar`, { method: 'POST' })
+    await buscarAssinaturas()
+    alert('Assinatura zerada com sucesso! O colaborador pode baixar o ponto novamente.')
+  } catch (e: any) {
+    alert(e.data?.message || 'Erro ao zerar assinatura')
+  }
+}
+
+const excluirAssinatura = async (assinatura: any) => {
+  if (!confirm(`Excluir permanentemente a assinatura de ${assinatura.colaborador?.nome}?`)) return
+  
+  try {
+    await $fetch(`/api/admin/assinaturas-ponto/${assinatura.id}`, { method: 'DELETE' })
+    await buscarAssinaturas()
+    alert('Assinatura excluída com sucesso!')
+  } catch (e: any) {
+    alert(e.data?.message || 'Erro ao excluir assinatura')
+  }
 }
 
 const buscarRegistros = async () => { 

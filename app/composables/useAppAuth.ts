@@ -50,7 +50,7 @@ export const useAppAuth = () => {
     try {
       // Validar authUid antes de fazer a query
       if (!authUid || authUid === 'undefined' || authUid === 'null') {
-        console.error('❌ [AUTH] authUid inválido:', authUid)
+        // Não logar erro se authUid for undefined (pode ser carregamento inicial)
         return null
       }
 

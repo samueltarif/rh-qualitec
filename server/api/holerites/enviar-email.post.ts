@@ -132,6 +132,76 @@ export default defineEventHandler(async (event) => {
       return meses[mes - 1]
     }
 
+    // Calcular valores dinamicamente (mesma lógica dos componentes)
+    const calcularTotalProventos = (holerite: any) => {
+      let total = holerite.salario_base || 0
+      
+      // Horas extras
+      total += holerite.valor_horas_extras_50 || 0
+      total += holerite.valor_horas_extras_100 || 0
+      
+      // Adicionais
+      total += holerite.bonus || 0
+      total += holerite.comissoes || 0
+      total += holerite.adicional_insalubridade || 0
+      total += holerite.adicional_periculosidade || 0
+      total += holerite.adicional_noturno || 0
+      total += holerite.outros_proventos || 0
+      
+      // Itens personalizados - proventos
+      const itensPersonalizados = holerite.itens_personalizados || []
+      itensPersonalizados
+        .filter((item: any) => item.tipo === 'provento')
+        .forEach((item: any) => {
+          total += item.valor || 0
+        })
+      
+      return total
+    }
+
+    const calcularTotalDescontos = (holerite: any) => {
+      let total = 0
+      
+      // Impostos
+      total += holerite.inss || 0
+      total += holerite.irrf || 0
+      
+      // Descontos
+      total += holerite.adiantamento || 0
+      total += holerite.emprestimos || 0
+      total += holerite.faltas || 0
+      total += holerite.atrasos || 0
+      total += holerite.outros_descontos || 0
+      
+      // Benefícios (descontados)
+      total += holerite.plano_saude || 0
+      total += holerite.plano_odontologico || 0
+      total += holerite.seguro_vida || 0
+      total += holerite.auxilio_creche || 0
+      total += holerite.auxilio_educacao || 0
+      total += holerite.auxilio_combustivel || 0
+      total += holerite.outros_beneficios || 0
+      
+      // Itens personalizados - descontos
+      const itensPersonalizados = holerite.itens_personalizados || []
+      itensPersonalizados
+        .filter((item: any) => item.tipo === 'desconto')
+        .forEach((item: any) => {
+          total += item.valor || 0
+        })
+      
+      return total
+    }
+
+    const calcularSalarioLiquido = (holerite: any) => {
+      return calcularTotalProventos(holerite) - calcularTotalDescontos(holerite)
+    }
+
+    // Calcular valores reais
+    const totalProventos = calcularTotalProventos(holeriteData)
+    const totalDescontos = calcularTotalDescontos(holeriteData)
+    const salarioLiquido = calcularSalarioLiquido(holeriteData)
+
     // Montar email HTML
     const htmlEmail = `
       <!DOCTYPE html>
@@ -172,7 +242,7 @@ export default defineEventHandler(async (event) => {
               
               <div class="linha">
                 <span class="label">Total Proventos:</span>
-                <span class="valor" style="color: green;">${formatCurrency(holeriteData.total_proventos)}</span>
+                <span class="valor" style="color: green;">${formatCurrency(totalProventos)}</span>
               </div>
               
               <div class="linha">
@@ -187,12 +257,12 @@ export default defineEventHandler(async (event) => {
               
               <div class="linha">
                 <span class="label">Total Descontos:</span>
-                <span class="valor" style="color: #e74c3c;">-${formatCurrency(holeriteData.total_descontos)}</span>
+                <span class="valor" style="color: #e74c3c;">-${formatCurrency(totalDescontos)}</span>
               </div>
               
               <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #667eea;">
                 <p style="margin: 0; color: #666;">Valor Líquido a Receber</p>
-                <div class="valor-destaque">${formatCurrency(holeriteData.salario_liquido)}</div>
+                <div class="valor-destaque">${formatCurrency(salarioLiquido)}</div>
               </div>
             </div>
             

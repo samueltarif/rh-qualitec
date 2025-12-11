@@ -34,15 +34,15 @@
               <p class="font-medium text-gray-800">{{ item.nome }}</p>
             </td>
             <td class="px-4 py-3 text-sm text-gray-600">{{ formatCPF(item.cpf) }}</td>
-            <td class="px-4 py-3 text-right font-medium text-gray-800">{{ formatCurrency(item.salario_bruto) }}</td>
+            <td class="px-4 py-3 text-right font-medium text-gray-800" :title="`Salário Base + Proventos (inclui itens personalizados)`">{{ formatCurrency(item.salario_bruto) }}</td>
             <td class="px-4 py-3 text-right text-sm text-blue-700">{{ formatCurrency(item.inss) }}</td>
             <td class="px-4 py-3 text-right text-sm text-purple-700">{{ formatCurrency(item.irrf) }}</td>
             <td class="px-4 py-3 text-right text-sm" :class="item.adiantamento > 0 ? 'text-orange-700 font-semibold' : 'text-gray-400'" :title="item.adiantamento > 0 ? 'Adiantamento pago no mês anterior' : 'Sem adiantamento'">
               {{ formatCurrency(item.adiantamento || 0) }}
             </td>
             <td class="px-4 py-3 text-right text-sm text-green-700">{{ formatCurrency(item.fgts) }}</td>
-            <td class="px-4 py-3 text-right text-sm text-red-700 font-semibold">{{ formatCurrency(item.total_descontos) }}</td>
-            <td class="px-4 py-3 text-right font-bold text-gray-800">{{ formatCurrency(item.salario_liquido) }}</td>
+            <td class="px-4 py-3 text-right text-sm text-red-700 font-semibold" :title="`INSS + IRRF + Outros Descontos (inclui itens personalizados)`">{{ formatCurrency(item.total_descontos) }}</td>
+            <td class="px-4 py-3 text-right font-bold text-gray-800" :title="`Salário Bruto - Total Descontos = ${formatCurrency(item.salario_liquido)}`">{{ formatCurrency(item.salario_liquido) }}</td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-2 justify-end">
                 <UIButton 

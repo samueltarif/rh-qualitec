@@ -42,6 +42,13 @@
             @update:model-value="$emit('update:impostos', $event)"
             @change="$emit('recalcular')"
           />
+
+          <!-- Itens Personalizados -->
+          <FolhaItensPersonalizados 
+            :model-value="itensPersonalizados"
+            @update:model-value="$emit('update:itensPersonalizados', $event)"
+            @change="$emit('recalcular')"
+          />
         </div>
 
         <!-- Coluna Direita: Resumo em Tempo Real (1/3) -->
@@ -111,6 +118,14 @@ interface Impostos {
   irrf_manual: number | null
 }
 
+interface ItemPersonalizado {
+  tipo: 'provento' | 'desconto'
+  codigo: string
+  descricao: string
+  referencia: string
+  valor: number
+}
+
 interface Resumo {
   salario_base: number
   total_proventos: number
@@ -133,6 +148,7 @@ defineProps<{
   descontos: Descontos
   beneficios: Beneficios
   impostos: Impostos
+  itensPersonalizados: ItemPersonalizado[]
   resumo: Resumo
   nomeMes: string
   ano: string
@@ -144,6 +160,7 @@ defineEmits<{
   'update:descontos': [value: Descontos]
   'update:beneficios': [value: Beneficios]
   'update:impostos': [value: Impostos]
+  'update:itensPersonalizados': [value: ItemPersonalizado[]]
   recalcular: []
   fechar: []
   salvar: []

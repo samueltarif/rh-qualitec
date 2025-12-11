@@ -147,15 +147,15 @@
           <div class="space-y-1 mb-3 text-sm">
             <div class="flex justify-between">
               <span class="text-gray-600">Bruto:</span>
-              <span class="font-medium">{{ formatCurrency(holerite.salario_bruto) }}</span>
+              <span class="font-medium">{{ formatCurrency(calcularTotalProventos(holerite)) }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Descontos:</span>
-              <span class="font-medium text-red-600">{{ formatCurrency(holerite.total_descontos) }}</span>
+              <span class="font-medium text-red-600">{{ formatCurrency(calcularTotalDescontos(holerite)) }}</span>
             </div>
             <div class="flex justify-between border-t pt-1">
               <span class="text-gray-700 font-medium">Líquido:</span>
-              <span class="font-bold text-green-700">{{ formatCurrency(holerite.salario_liquido) }}</span>
+              <span class="font-bold text-green-700">{{ formatCurrency(calcularSalarioLiquido(holerite)) }}</span>
             </div>
           </div>
 
@@ -285,10 +285,75 @@ const stats = computed(() => {
   const total = holeristesFiltrados.value.length
   const gerados = holeristesFiltrados.value.filter(h => h.status === 'gerado').length
   const enviados = holeristesFiltrados.value.filter(h => h.status === 'enviado').length
-  const valorTotal = holeristesFiltrados.value.reduce((sum, h) => sum + (h.salario_liquido || 0), 0)
+  const valorTotal = holeristesFiltrados.value.reduce((sum, h) => sum + calcularSalarioLiquido(h), 0)
 
   return { total, gerados, enviados, valorTotal }
 })
+
+// Funções de cálculo dinâmico
+const calcularTotalProventos = (holerite: any) => {
+  let total = holerite.salario_base || 0
+  
+  // Horas extras
+  total += holerite.valor_horas_extras_50 || 0
+  total += holerite.valor_horas_extras_100 || 0
+  
+  // Adicionais
+  total += holerite.bonus || 0
+  total += holerite.comissoes || 0
+  total += holerite.adicional_insalubridade || 0
+  total += holerite.adicional_periculosidade || 0
+  total += holerite.adicional_noturno || 0
+  total += holerite.outros_proventos || 0
+  
+  // Itens personalizados - proventos
+  const itensPersonalizados = holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'provento')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularTotalDescontos = (holerite: any) => {
+  let total = 0
+  
+  // Impostos
+  total += holerite.inss || 0
+  total += holerite.irrf || 0
+  
+  // Descontos
+  total += holerite.adiantamento || 0
+  total += holerite.emprestimos || 0
+  total += holerite.faltas || 0
+  total += holerite.atrasos || 0
+  total += holerite.outros_descontos || 0
+  
+  // Benefícios (descontados)
+  total += holerite.plano_saude || 0
+  total += holerite.plano_odontologico || 0
+  total += holerite.seguro_vida || 0
+  total += holerite.auxilio_creche || 0
+  total += holerite.auxilio_educacao || 0
+  total += holerite.auxilio_combustivel || 0
+  total += holerite.outros_beneficios || 0
+  
+  // Itens personalizados - descontos
+  const itensPersonalizados = holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'desconto')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularSalarioLiquido = (holerite: any) => {
+  return calcularTotalProventos(holerite) - calcularTotalDescontos(holerite)
+}
 
 const nomeMes = (mes: number) => {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']

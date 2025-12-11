@@ -35,6 +35,14 @@ export const useFolhaModalEdicao = () => {
       // Impostos manuais (opcional)
       inss_manual: null as number | null,
       irrf_manual: null as number | null,
+      // Itens personalizados
+      itens_personalizados: [] as Array<{
+        tipo: 'provento' | 'desconto'
+        codigo: string
+        descricao: string
+        referencia: string
+        valor: number
+      }>,
     },
     resumo: {
       salario_base: 0,
@@ -113,18 +121,34 @@ export const useFolhaModalEdicao = () => {
     }
   })
 
+  // Computed para itens personalizados
+  const itensPersonalizadosData = computed({
+    get: () => modalEdicao.value.edicao.itens_personalizados,
+    set: (value) => {
+      modalEdicao.value.edicao.itens_personalizados = value
+    }
+  })
+
   // Abrir modal de edição
-  const abrirModalEdicao = async (item: any) => {
+  const abrirModalEdicao = async (item: any, mes?: string, ano?: string) => {
     try {
       const response = await $fetch<any>(`/api/colaboradores/${item.colaborador_id}`)
       
       modalEdicao.value.dados = {
         ...item,
+        mes: mes || item.mes,
+        ano: ano || item.ano,
         cargo: response.cargo_nome || response.cargo || '-',
         salario_base: item.salario_bruto || 0,
         dependentes: response.dependentes || 0,
         horas_contratadas: response.horas_contratadas || 220,
       }
+      
+      console.log('📝 Dados do modal carregados:', {
+        colaborador_id: modalEdicao.value.dados.colaborador_id,
+        mes: modalEdicao.value.dados.mes,
+        ano: modalEdicao.value.dados.ano
+      })
 
       // Pré-preencher benefícios do cadastro do colaborador
       const beneficiosColaborador = {
@@ -162,6 +186,7 @@ export const useFolhaModalEdicao = () => {
         outros_beneficios: 0,
         inss_manual: null,
         irrf_manual: null,
+        itens_personalizados: [],
       })
 
       modalEdicao.value.aberto = true
@@ -208,6 +233,7 @@ export const useFolhaModalEdicao = () => {
         outros_beneficios: 0,
         inss_manual: null,
         irrf_manual: null,
+        itens_personalizados: [],
       })
       
       modalEdicao.value.aberto = true
@@ -247,13 +273,58 @@ export const useFolhaModalEdicao = () => {
   )
 
   // Salvar edição
-  const salvarEdicao = () => {
-    if (!modalEdicao.value.dados) return
+  const salvarEdicao = async () => {
+    if (!modalEdicao.value.dados) {
+      console.error('❌ Dados do modal não encontrados')
+      return
+    }
     
-    alert('Funcionalidade de salvar será implementada em breve!\n\nDados editados:\n' + 
-      JSON.stringify(modalEdicao.value.resumo, null, 2))
-    
-    fecharModalEdicao()
+    try {
+      // Debug: ver todos os dados disponíveis
+      console.log('💾 Salvando edição...', modalEdicao.value.dados)
+      
+      // Extrair mes e ano dos dados
+      const mes = modalEdicao.value.dados.mes || (modalEdicao.value.dados as any).competencia_mes
+      const ano = modalEdicao.value.dados.ano || (modalEdicao.value.dados as any).competencia_ano
+      
+      if (!mes || !ano) {
+        console.error('❌ Mês ou ano não encontrados nos dados:', {
+          mes,
+          ano,
+          dados: modalEdicao.value.dados
+        })
+        alert('Erro: Não foi possível identificar o mês e ano da folha.')
+        return
+      }
+
+      const body = {
+        colaborador_id: modalEdicao.value.dados.colaborador_id,
+        mes: String(mes),
+        ano: String(ano),
+        edicao: modalEdicao.value.edicao,
+        resumo: modalEdicao.value.resumo,
+        itens_personalizados: modalEdicao.value.edicao.itens_personalizados,
+      }
+
+      console.log('📤 Enviando dados:', body)
+
+      const response = await $fetch('/api/holerites/salvar-edicao', {
+        method: 'POST',
+        body
+      })
+
+      console.log('✅ Edição salva com sucesso:', response)
+      
+      alert('Edição salva com sucesso!\n\nAgora você pode gerar o holerite para ver as alterações.')
+      
+      fecharModalEdicao()
+      
+      // Recarregar a página para atualizar os dados
+      window.location.reload()
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar edição:', error)
+      alert(`Erro ao salvar edição:\n${error.message || 'Erro desconhecido'}`)
+    }
   }
 
   return {
@@ -262,6 +333,7 @@ export const useFolhaModalEdicao = () => {
     proventosData,
     descontosData,
     impostosData,
+    itensPersonalizadosData,
     abrirModalEdicao,
     fecharModalEdicao,
     recalcularResumo,

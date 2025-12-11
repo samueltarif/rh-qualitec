@@ -95,6 +95,41 @@
               <td class="px-4 py-2"></td>
             </tr>
             
+            <tr v-if="holerite.bonus > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">010</td>
+              <td class="px-4 py-2 text-gray-700">Bônus / Gratificações</td>
+              <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(holerite.bonus) }}</td>
+              <td class="px-4 py-2"></td>
+            </tr>
+            
+            <tr v-if="holerite.comissoes > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">011</td>
+              <td class="px-4 py-2 text-gray-700">Comissões</td>
+              <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(holerite.comissoes) }}</td>
+              <td class="px-4 py-2"></td>
+            </tr>
+            
+            <tr v-if="holerite.adicional_insalubridade > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">012</td>
+              <td class="px-4 py-2 text-gray-700">Adicional Insalubridade</td>
+              <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(holerite.adicional_insalubridade) }}</td>
+              <td class="px-4 py-2"></td>
+            </tr>
+            
+            <tr v-if="holerite.adicional_periculosidade > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">013</td>
+              <td class="px-4 py-2 text-gray-700">Adicional Periculosidade</td>
+              <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(holerite.adicional_periculosidade) }}</td>
+              <td class="px-4 py-2"></td>
+            </tr>
+            
+            <tr v-if="holerite.adicional_noturno > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">014</td>
+              <td class="px-4 py-2 text-gray-700">Adicional Noturno</td>
+              <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(holerite.adicional_noturno) }}</td>
+              <td class="px-4 py-2"></td>
+            </tr>
+            
             <tr v-if="holerite.vale_transporte > 0" class="border-b border-gray-200">
               <td class="px-4 py-2 text-gray-700">002</td>
               <td class="px-4 py-2 text-gray-700">Benefício - Vale-Transporte (VT) <span class="text-purple-600 text-xs">(pago pela empresa)</span></td>
@@ -116,10 +151,22 @@
               <td class="px-4 py-2"></td>
             </tr>
             
+            <!-- Itens Personalizados - Proventos -->
+            <template v-if="holerite.itens_personalizados && holerite.itens_personalizados.length > 0">
+              <tr v-for="(item, index) in holerite.itens_personalizados.filter((i: any) => i.tipo === 'provento')" 
+                  :key="`provento-${index}`" 
+                  class="border-b border-gray-200">
+                <td class="px-4 py-2 text-gray-700">{{ item.codigo || '---' }}</td>
+                <td class="px-4 py-2 text-gray-700">{{ item.descricao || 'Item Personalizado' }}</td>
+                <td class="px-4 py-2 text-right font-medium text-gray-900">{{ formatCurrencySimple(item.valor || 0) }}</td>
+                <td class="px-4 py-2"></td>
+              </tr>
+            </template>
+            
             <!-- Total Proventos -->
             <tr class="bg-green-50 border-b-2 border-gray-300">
               <td colspan="2" class="px-4 py-2 font-bold text-green-800 uppercase">Total Proventos</td>
-              <td class="px-4 py-2 text-right font-bold text-green-800">{{ formatCurrencySimple(holerite.total_proventos) }}</td>
+              <td class="px-4 py-2 text-right font-bold text-green-800">{{ formatCurrencySimple(calcularTotalProventos()) }}</td>
               <td class="px-4 py-2"></td>
             </tr>
             
@@ -138,6 +185,20 @@
               <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.irrf) }}</td>
             </tr>
             
+            <tr v-if="holerite.adiantamento > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">910</td>
+              <td class="px-4 py-2 text-gray-700">Adiantamento Salarial</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.adiantamento) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.emprestimos > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">911</td>
+              <td class="px-4 py-2 text-gray-700">Empréstimos / Consignados</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.emprestimos) }}</td>
+            </tr>
+            
             <tr v-if="holerite.faltas > 0" class="border-b border-gray-200">
               <td class="px-4 py-2 text-gray-700">903</td>
               <td class="px-4 py-2 text-gray-700">Faltas</td>
@@ -152,6 +213,55 @@
               <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.atrasos) }}</td>
             </tr>
             
+            <tr v-if="holerite.plano_saude > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">920</td>
+              <td class="px-4 py-2 text-gray-700">Plano de Saúde</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.plano_saude) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.plano_odontologico > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">921</td>
+              <td class="px-4 py-2 text-gray-700">Plano Odontológico</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.plano_odontologico) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.seguro_vida > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">922</td>
+              <td class="px-4 py-2 text-gray-700">Seguro de Vida</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.seguro_vida) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.auxilio_creche > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">923</td>
+              <td class="px-4 py-2 text-gray-700">Auxílio Creche</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.auxilio_creche) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.auxilio_educacao > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">924</td>
+              <td class="px-4 py-2 text-gray-700">Auxílio Educação</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.auxilio_educacao) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.auxilio_combustivel > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">925</td>
+              <td class="px-4 py-2 text-gray-700">Auxílio Combustível</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.auxilio_combustivel) }}</td>
+            </tr>
+            
+            <tr v-if="holerite.outros_beneficios > 0" class="border-b border-gray-200">
+              <td class="px-4 py-2 text-gray-700">926</td>
+              <td class="px-4 py-2 text-gray-700">Outros Benefícios</td>
+              <td class="px-4 py-2"></td>
+              <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.outros_beneficios) }}</td>
+            </tr>
+            
             <tr v-if="holerite.outros_descontos > 0" class="border-b border-gray-200">
               <td class="px-4 py-2 text-gray-700">905</td>
               <td class="px-4 py-2 text-gray-700">{{ holerite.descricao_outros_descontos || 'Outros Descontos' }}</td>
@@ -159,11 +269,23 @@
               <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(holerite.outros_descontos) }}</td>
             </tr>
             
+            <!-- Itens Personalizados - Descontos -->
+            <template v-if="holerite.itens_personalizados && holerite.itens_personalizados.length > 0">
+              <tr v-for="(item, index) in holerite.itens_personalizados.filter((i: any) => i.tipo === 'desconto')" 
+                  :key="`desconto-${index}`" 
+                  class="border-b border-gray-200">
+                <td class="px-4 py-2 text-gray-700">{{ item.codigo || '---' }}</td>
+                <td class="px-4 py-2 text-gray-700">{{ item.descricao || 'Item Personalizado' }}</td>
+                <td class="px-4 py-2"></td>
+                <td class="px-4 py-2 text-right font-medium text-red-600">{{ formatCurrencySimple(item.valor || 0) }}</td>
+              </tr>
+            </template>
+            
             <!-- Total Descontos -->
             <tr class="bg-red-50 border-b-2 border-gray-300">
               <td colspan="2" class="px-4 py-2 font-bold text-red-800 uppercase">Total Descontos</td>
               <td class="px-4 py-2"></td>
-              <td class="px-4 py-2 text-right font-bold text-red-800">{{ formatCurrencySimple(holerite.total_descontos) }}</td>
+              <td class="px-4 py-2 text-right font-bold text-red-800">{{ formatCurrencySimple(calcularTotalDescontos()) }}</td>
             </tr>
           </tbody>
         </table>
@@ -174,7 +296,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-green-100 text-sm uppercase mb-1">Salário Líquido a Receber</p>
-            <p class="text-5xl font-bold">{{ formatCurrency(holerite.salario_liquido) }}</p>
+            <p class="text-5xl font-bold">{{ formatCurrency(calcularSalarioLiquido()) }}</p>
           </div>
           <Icon name="heroicons:banknotes" size="64" class="text-green-200 opacity-50" />
         </div>
@@ -339,6 +461,70 @@ const calcularDiasTrabalhados = () => {
 
 const imprimir = () => {
   window.print()
+}
+
+const calcularTotalProventos = () => {
+  let total = props.holerite.salario_base || 0
+  
+  // Horas extras
+  total += props.holerite.valor_horas_extras_50 || 0
+  total += props.holerite.valor_horas_extras_100 || 0
+  
+  // Adicionais
+  total += props.holerite.bonus || 0
+  total += props.holerite.comissoes || 0
+  total += props.holerite.adicional_insalubridade || 0
+  total += props.holerite.adicional_periculosidade || 0
+  total += props.holerite.adicional_noturno || 0
+  total += props.holerite.outros_proventos || 0
+  
+  // Itens personalizados - proventos
+  const itensPersonalizados = props.holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'provento')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularTotalDescontos = () => {
+  let total = 0
+  
+  // Impostos
+  total += props.holerite.inss || 0
+  total += props.holerite.irrf || 0
+  
+  // Descontos
+  total += props.holerite.adiantamento || 0
+  total += props.holerite.emprestimos || 0
+  total += props.holerite.faltas || 0
+  total += props.holerite.atrasos || 0
+  total += props.holerite.outros_descontos || 0
+  
+  // Benefícios (descontados)
+  total += props.holerite.plano_saude || 0
+  total += props.holerite.plano_odontologico || 0
+  total += props.holerite.seguro_vida || 0
+  total += props.holerite.auxilio_creche || 0
+  total += props.holerite.auxilio_educacao || 0
+  total += props.holerite.auxilio_combustivel || 0
+  total += props.holerite.outros_beneficios || 0
+  
+  // Itens personalizados - descontos
+  const itensPersonalizados = props.holerite.itens_personalizados || []
+  itensPersonalizados
+    .filter((item: any) => item.tipo === 'desconto')
+    .forEach((item: any) => {
+      total += item.valor || 0
+    })
+  
+  return total
+}
+
+const calcularSalarioLiquido = () => {
+  return calcularTotalProventos() - calcularTotalDescontos()
 }
 
 const baixarPDF = async () => {

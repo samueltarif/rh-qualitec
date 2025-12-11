@@ -12,7 +12,9 @@
               <p class="text-sm text-gray-400">Sistema RH Qualitec</p>
             </div>
           </div>
-          <UserProfileDropdown theme="admin" />
+          <div class="flex items-center gap-4">
+            <UserProfileDropdown theme="admin" />
+          </div>
         </div>
       </div>
     </header>
@@ -65,6 +67,8 @@
         <WidgetAcoesRapidas />
       </template>
     </div>
+
+
   </div>
 </template>
 
@@ -90,6 +94,8 @@ const alertaClass = (tipo: string) => ({
 })
 
 const alertaIcon = (tipo: string) => tipo === 'warning' ? 'heroicons:exclamation-triangle' : tipo === 'error' ? 'heroicons:x-circle' : 'heroicons:information-circle'
+
+
 
 onMounted(async () => {
   try {

@@ -39,20 +39,8 @@ export interface Solicitacao {
   created_at: string
 }
 
-export interface RegistroPonto {
-  id: string
-  data: string
-  entrada_1: string
-  saida_1: string
-  entrada_2: string
-  saida_2: string
-  entrada_3: string
-  saida_3: string
-  horas_trabalhadas: string
-  horas_extras: string
-  status: string
-  observacoes: string
-}
+// Importar interface do pontoCalculos.ts
+import type { RegistroPonto } from '~/utils/pontoCalculos'
 
 export interface DocumentoFuncionario {
   id: string

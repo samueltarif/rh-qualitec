@@ -17,6 +17,12 @@ export const useFolhaPagamento = () => {
     const adicionalInsalubridade = salarioBase * ((parseFloat(String(edicao.adicional_insalubridade)) || 0) / 100)
     const adicionalPericulosidade = salarioBase * ((parseFloat(String(edicao.adicional_periculosidade)) || 0) / 100)
     
+    // Calcular itens personalizados - PROVENTOS
+    const itensPersonalizados = edicao.itens_personalizados || []
+    const totalItensProventos = itensPersonalizados
+      .filter((item: any) => item.tipo === 'provento')
+      .reduce((sum: number, item: any) => sum + (parseFloat(String(item.valor)) || 0), 0)
+    
     const totalProventos = 
       horasExtras50 +
       horasExtras100 +
@@ -25,7 +31,8 @@ export const useFolhaPagamento = () => {
       adicionalInsalubridade +
       adicionalPericulosidade +
       (parseFloat(String(edicao.adicional_noturno)) || 0) +
-      (parseFloat(String(edicao.outros_proventos)) || 0)
+      (parseFloat(String(edicao.outros_proventos)) || 0) +
+      totalItensProventos
 
     const salarioBruto = salarioBase + totalProventos
 
@@ -45,12 +52,18 @@ export const useFolhaPagamento = () => {
     const descontoFaltas = (parseFloat(String(edicao.faltas_horas)) || 0) * valorHora
     const descontoAtrasos = (parseFloat(String(edicao.atrasos_horas)) || 0) * valorHora
 
+    // Calcular itens personalizados - DESCONTOS
+    const totalItensDescontos = itensPersonalizados
+      .filter((item: any) => item.tipo === 'desconto')
+      .reduce((sum: number, item: any) => sum + (parseFloat(String(item.valor)) || 0), 0)
+
     const outrosDescontos = 
       (parseFloat(String(edicao.adiantamento)) || 0) +
       (parseFloat(String(edicao.emprestimos)) || 0) +
       descontoFaltas +
       descontoAtrasos +
-      (parseFloat(String(edicao.outros_descontos)) || 0)
+      (parseFloat(String(edicao.outros_descontos)) || 0) +
+      totalItensDescontos
 
     const totalDescontos = inss + irrf + outrosDescontos
     const salarioLiquido = salarioBruto - totalDescontos

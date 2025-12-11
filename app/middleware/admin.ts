@@ -32,11 +32,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     return navigateTo('/employee')
   }
 
-  // Verificar se é o admin específico (silvana@qualitec.ind.br)
-  if (currentUser.value.email !== 'silvana@qualitec.ind.br') {
-    console.warn('Acesso negado: apenas silvana@qualitec.ind.br pode acessar área admin')
-    return navigateTo('/employee')
-  }
-
   // Admin autenticado, permitir acesso
+  console.log('✅ Acesso admin permitido para:', currentUser.value.email)
 })

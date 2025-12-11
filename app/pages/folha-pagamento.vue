@@ -54,7 +54,7 @@
           :ano="filtros.ano"
           :loading-acoes="loadingAcoes"
           :loading-emails="loadingEmails"
-          @editar="abrirModalEdicao"
+          @editar="(item) => abrirModalEdicao(item, filtros.mes, filtros.ano)"
           @gerar-holerite="gerarHoleriteIndividual"
           @enviar-email="enviarHoleritePorEmail"
         />
@@ -104,6 +104,7 @@
       v-model:descontos="descontosData"
       v-model:beneficios="beneficiosData"
       v-model:impostos="impostosData"
+      v-model:itens-personalizados="itensPersonalizadosData"
       :resumo="modalEdicao.resumo"
       :nome-mes="nomeMes(filtros.mes)"
       :ano="filtros.ano"
@@ -151,6 +152,7 @@ const {
   proventosData,
   descontosData,
   impostosData,
+  itensPersonalizadosData,
   abrirModalEdicao,
   fecharModalEdicao,
   recalcularResumo,
