@@ -133,14 +133,17 @@ export default defineEventHandler(async (event) => {
             descontoINSS = calcularINSS(valor13Total)
             descontoIRRF = calcularIRRF(valor13Total, descontoINSS, (colaborador as any).dependentes || 0)
             
-            // 2ª Parcela = Total - 1ª Parcela - Descontos
-            totalProventos = valor13Total - primeiraParcela
-            valor13Parcela = totalProventos - descontoINSS - descontoIRRF
+            // 2ª Parcela = Valor restante (50%) - Descontos
+            const valorRestante = valor13Total - primeiraParcela // 50% restante
+            totalProventos = valorRestante
+            valor13Parcela = valorRestante - descontoINSS - descontoIRRF
             mesHolerite = 12 // Dezembro
             console.log(`   📅 Mês: Dezembro (${mesHolerite})`)
-            console.log(`   💰 Valor bruto: R$ ${totalProventos.toFixed(2)}`)
-            console.log(`   💳 INSS: R$ ${descontoINSS.toFixed(2)}`)
-            console.log(`   💳 IRRF: R$ ${descontoIRRF.toFixed(2)}`)
+            console.log(`   💰 13º Total: R$ ${valor13Total.toFixed(2)}`)
+            console.log(`   💰 1ª Parcela (já paga): R$ ${primeiraParcela.toFixed(2)}`)
+            console.log(`   💰 Valor restante (2ª parcela): R$ ${valorRestante.toFixed(2)}`)
+            console.log(`   💳 INSS (sobre total): R$ ${descontoINSS.toFixed(2)}`)
+            console.log(`   💳 IRRF (sobre total): R$ ${descontoIRRF.toFixed(2)}`)
             console.log(`   💰 Valor líquido: R$ ${valor13Parcela.toFixed(2)}`)
           } else {
             // Integral: 100% com descontos (pago de uma vez)

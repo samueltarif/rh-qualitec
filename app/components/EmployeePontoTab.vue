@@ -527,23 +527,230 @@ const baixarPDF = async () => {
   baixandoPDF.value = true
   
   try {
-    // Primeiro buscar o ID do colaborador atual
-    const funcionario = await $fetch('/api/funcionario/perfil')
+    console.log('🔍 Testando API simples primeiro...')
     
-    if (!funcionario?.appUser?.colaborador_id) {
-      throw new Error('Colaborador não encontrado')
+    // Testar API simples primeiro
+    const teste = await $fetch('/api/funcionario/ponto/test-simple')
+    console.log('✅ API simples funcionou:', teste)
+    
+    // Agora testar a nova API de PDF
+    console.log('🔍 Testando nova API de PDF...')
+    const dados = await $fetch('/api/funcionario/ponto/download-pdf-new')
+    console.log('✅ Nova API funcionou:', dados)
+    
+    if (!dados.success) {
+      throw new Error('Erro ao buscar dados do relatório')
     }
     
-    // Usar API pública que funciona para todos os colaboradores
-    const url = `/api/public/ponto/download-html?colaborador_id=${funcionario.appUser.colaborador_id}&mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`
-    window.open(url, '_blank')
+    // Gerar HTML completo com assinatura
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Ponto - ${dados.colaborador.nome}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .info { margin-bottom: 20px; }
+    .info p { margin: 5px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+    th { background-color: #f2f2f2; font-weight: bold; }
+    .resumo { margin: 20px 0; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; }
+    .assinatura { margin-top: 30px; padding: 15px; border: 2px solid #007bff; background-color: #f8f9fa; }
+    .assinatura h3 { margin-top: 0; color: #007bff; }
+    .hash { font-family: monospace; font-size: 10px; word-break: break-all; margin: 10px 0; }
+    .rodape { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+    @media print { 
+      body { margin: 0; } 
+      .assinatura { border-color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>RELATÓRIO DE PONTO ELETRÔNICO</h1>
+  </div>
+  
+  <div class="info">
+    <p><strong>Funcionário:</strong> ${dados.colaborador.nome}</p>
+    <p><strong>Matrícula:</strong> ${dados.colaborador.matricula}</p>
+    <p><strong>Período:</strong> ${dados.periodo.inicio} a ${dados.periodo.fim}</p>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th>Horas Trabalhadas</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${dados.registros.map((reg: any) => `
+        <tr>
+          <td>${reg.data}</td>
+          <td>${reg.entrada}</td>
+          <td>${reg.saida}</td>
+          <td>${reg.horas}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  
+  <div class="resumo">
+    <h3>RESUMO DO PERÍODO</h3>
+    <p><strong>Total de dias trabalhados:</strong> ${dados.resumo?.totalDias || 0}</p>
+    <p><strong>Total de horas trabalhadas:</strong> ${dados.resumo?.totalHoras || '0h00'}</p>
+  </div>
+  
+  ${dados.assinatura ? `
+    <div class="assinatura">
+      <h3>✅ ASSINATURA DIGITAL VÁLIDA</h3>
+      <p><strong>Documento assinado digitalmente em:</strong> ${dados.assinatura.dataAssinatura}</p>
+      <p><strong>Período assinado:</strong> ${String(dados.assinatura.mes).padStart(2, '0')}/${dados.assinatura.ano}</p>
+      <p><strong>IP de origem:</strong> ${dados.assinatura.ip || 'N/A'}</p>
+      ${dados.assinatura.observacoes ? `<p><strong>Observações:</strong> ${dados.assinatura.observacoes}</p>` : ''}
+      ${dados.assinatura.hash ? `
+        <p><strong>Hash de verificação:</strong></p>
+        <div class="hash">${dados.assinatura.hash}</div>
+      ` : ''}
+      <p><small><em>Este documento possui validade jurídica conforme MP 2.200-2/2001 (ICP-Brasil).</em></small></p>
+    </div>
+  ` : `
+    <div class="assinatura" style="border-color: #ffc107; background-color: #fff3cd;">
+      <h3 style="color: #856404;">⚠️ DOCUMENTO NÃO ASSINADO</h3>
+      <p>Este relatório ainda não foi assinado digitalmente pelo funcionário.</p>
+      <p>Para assinar, acesse o sistema e confirme seus registros de ponto na aba "Ponto".</p>
+      <p><small><em>Documentos não assinados não possuem validade jurídica.</em></small></p>
+    </div>
+  `}
+  
+  <div class="rodape">
+    <p>Relatório gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+    <p>Sistema de Ponto Eletrônico - Qualitec</p>
+  </div>
+</body>
+</html>`
     
-  } catch (error) {
-    console.error('Erro ao abrir relatório:', error)
-    alert('Erro ao gerar relatório. Tente novamente.')
+    // Abrir em nova janela
+    const novaJanela = window.open('', '_blank')
+    if (novaJanela) {
+      novaJanela.document.write(htmlContent)
+      novaJanela.document.close()
+      
+      setTimeout(() => {
+        novaJanela.print()
+      }, 500)
+    } else {
+      alert('Bloqueador de pop-up ativo. Permita pop-ups para gerar o relatório.')
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Erro completo:', error)
+    
+    let errorMessage = 'Erro ao gerar relatório. Tente novamente.'
+    if (error.statusCode === 401) {
+      errorMessage = 'Sessão expirada. Faça login novamente.'
+    } else if (error.statusCode === 404) {
+      errorMessage = 'Colaborador não encontrado. Verifique seu cadastro.'
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    alert(errorMessage)
   } finally {
     baixandoPDF.value = false
   }
+}
+
+const gerarHTMLRelatorio = (dados: any) => {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Ponto - ${dados.colaborador.nome}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .info { margin-bottom: 20px; }
+    .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    .table th { background-color: #f2f2f2; }
+    .resumo { margin: 20px 0; padding: 15px; background-color: #f9f9f9; }
+    .assinatura { margin-top: 30px; padding: 15px; border: 1px solid #ccc; }
+    @media print { body { margin: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>RELATÓRIO DE PONTO ELETRÔNICO</h1>
+  </div>
+  
+  <div class="info">
+    <p><strong>Funcionário:</strong> ${dados.colaborador.nome}</p>
+    <p><strong>Matrícula:</strong> ${dados.colaborador.matricula}</p>
+    <p><strong>Cargo:</strong> ${dados.colaborador.cargo}</p>
+    <p><strong>Departamento:</strong> ${dados.colaborador.departamento}</p>
+    <p><strong>Período:</strong> ${dados.periodo.inicio} a ${dados.periodo.fim}</p>
+  </div>
+  
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Entrada</th>
+        <th>Intervalo</th>
+        <th>Saída</th>
+        <th>Horas</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${dados.registros.map((reg: any) => `
+        <tr>
+          <td>${reg.data}</td>
+          <td>${reg.entrada}</td>
+          <td>${reg.intervalo}</td>
+          <td>${reg.saida}</td>
+          <td>${reg.horas}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  
+  <div class="resumo">
+    <h3>RESUMO</h3>
+    <p><strong>Total de dias trabalhados:</strong> ${dados.resumo.totalDias}</p>
+    <p><strong>Total de horas trabalhadas:</strong> ${dados.resumo.totalHoras}</p>
+  </div>
+  
+  ${dados.assinatura ? `
+    <div class="assinatura">
+      <h3>ASSINATURA DIGITAL</h3>
+      <p>✅ Documento assinado digitalmente em: ${dados.assinatura.dataAssinatura}</p>
+      <p>📅 Período: ${String(dados.assinatura.mes).padStart(2, '0')}/${dados.assinatura.ano}</p>
+      <p>🌐 IP: ${dados.assinatura.ip}</p>
+      ${dados.assinatura.hash ? `<p><small>Hash: ${dados.assinatura.hash}</small></p>` : ''}
+      <p><small>Este documento possui validade jurídica conforme MP 2.200-2/2001.</small></p>
+    </div>
+  ` : `
+    <div class="assinatura">
+      <h3>ASSINATURA DIGITAL</h3>
+      <p>⚠️ Este documento ainda não foi assinado digitalmente.</p>
+      <p>Para assinar, acesse o sistema e confirme seus registros de ponto.</p>
+    </div>
+  `}
+  
+  <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+    <p>Relatório gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+    <p>Sistema de Ponto Eletrônico - Qualitec</p>
+  </div>
+</body>
+</html>
+  `
 }
 
 const verificarRenovacaoAssinatura = async () => {
@@ -552,10 +759,10 @@ const verificarRenovacaoAssinatura = async () => {
       method: 'POST'
     })
     
-    if (response.precisaAssinar) {
+    // Só mostrar mensagem de renovação se realmente for uma renovação (já existia assinatura anterior)
+    if (response.precisaAssinar && !response.jaExiste) {
       precisaRenovarAssinatura.value = true
-      // Mostrar notificação para o usuário
-      console.log('É necessário renovar sua assinatura digital para este mês.')
+      // Não mostrar console.log desnecessário
     }
   } catch (error) {
     console.error('Erro ao verificar renovação:', error)

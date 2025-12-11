@@ -74,41 +74,105 @@ export default defineEventHandler(async (event) => {
       .lte('data', dataFim)
       .order('data', { ascending: true })
 
-    // Calcular totais
-    const diasTrabalhados = registros ? new Set(registros.map((r: any) => r.data)).size : 0
-    
-    // Calcular total de horas (simplificado)
+    // Calcular totais corretamente usando a estrutura real dos registros
+    let diasTrabalhados = 0
     let totalMinutos = 0
-    if (registros) {
-      const registrosPorDia: Record<string, any[]> = {}
-      
+    
+    if (registros && registros.length > 0) {
       registros.forEach((registro: any) => {
-        if (!registrosPorDia[registro.data]) {
-          registrosPorDia[registro.data] = []
-        }
-        registrosPorDia[registro.data].push(registro)
-      })
-
-      Object.values(registrosPorDia).forEach((registrosDia: any[]) => {
-        if (registrosDia.length >= 2) {
-          const entrada = new Date(`${registrosDia[0].data}T${registrosDia[0].hora}`)
-          const saida = new Date(`${registrosDia[registrosDia.length - 1].data}T${registrosDia[registrosDia.length - 1].hora}`)
-          const diff = saida.getTime() - entrada.getTime()
-          totalMinutos += Math.max(0, diff / (1000 * 60))
+        // Verificar se tem pelo menos entrada_1 e uma saída (saida_2 ou saida_1)
+        const entrada = registro.entrada_1
+        const saida = registro.saida_2 || registro.saida_1
+        
+        if (entrada && saida) {
+          // Calcular horas trabalhadas no dia
+          const entradaTime = new Date(`${registro.data}T${entrada}`)
+          const saidaTime = new Date(`${registro.data}T${saida}`)
+          let diffMs = saidaTime.getTime() - entradaTime.getTime()
+          
+          // Se tem intervalo (saida_1 e entrada_2), descontar
+          if (registro.saida_1 && registro.entrada_2 && registro.saida_2) {
+            const inicioIntervalo = new Date(`${registro.data}T${registro.saida_1}`)
+            const fimIntervalo = new Date(`${registro.data}T${registro.entrada_2}`)
+            const intervaloMs = fimIntervalo.getTime() - inicioIntervalo.getTime()
+            diffMs -= intervaloMs
+          }
+          
+          if (diffMs > 0) {
+            const minutosTrabalhadosDia = Math.floor(diffMs / (1000 * 60))
+            
+            // Se trabalhou pelo menos 1 hora, conta como dia trabalhado
+            if (minutosTrabalhadosDia >= 60) {
+              diasTrabalhados++
+              totalMinutos += minutosTrabalhadosDia
+            }
+          }
         }
       })
     }
 
     const horas = Math.floor(totalMinutos / 60)
     const minutos = Math.floor(totalMinutos % 60)
-    const totalHoras = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`
+    const totalHoras = `${horas}h${minutos.toString().padStart(2, '0')}`
 
-    // Gerar CSV dos registros
-    const csvHeader = 'Data,Hora,Tipo,Observações\n'
-    const csvContent = registros ? registros.map((r: any) => 
-      `${r.data},${r.hora},${r.tipo || 'Entrada/Saída'},${r.observacoes || ''}`
-    ).join('\n') : ''
-    const csvCompleto = csvHeader + csvContent
+    // Gerar CSV dos registros com estrutura correta
+    const csvLinhas: string[] = []
+    csvLinhas.push('REGISTRO DE PONTO ELETRÔNICO')
+    csvLinhas.push(`Colaborador: ${colaborador.nome}`)
+    csvLinhas.push(`Período: ${mes.toString().padStart(2, '0')}/${ano}`)
+    csvLinhas.push(`Data de Assinatura: ${new Date().toLocaleString('pt-BR')}`)
+    csvLinhas.push('')
+    csvLinhas.push('Data;Entrada 1;Saída 1;Entrada 2;Saída 2;Entrada 3;Saída 3;Total Horas')
+    
+    if (registros && registros.length > 0) {
+      // Agrupar por data e processar
+      const registrosPorDia: Record<string, any> = {}
+      
+      registros.forEach((registro: any) => {
+        if (!registrosPorDia[registro.data]) {
+          registrosPorDia[registro.data] = registro
+        }
+      })
+      
+      Object.values(registrosPorDia).forEach((reg: any) => {
+        // Calcular total de horas do dia
+        let totalHorasDia = '0h00'
+        if (reg.entrada_1 && reg.saida_2) {
+          const entrada = new Date(`${reg.data}T${reg.entrada_1}`)
+          const saida = new Date(`${reg.data}T${reg.saida_2}`)
+          const diffMs = saida.getTime() - entrada.getTime()
+          
+          if (diffMs > 0) {
+            const totalMin = Math.floor(diffMs / (1000 * 60))
+            const horas = Math.floor(totalMin / 60)
+            const minutos = totalMin % 60
+            totalHorasDia = `${horas}h${minutos.toString().padStart(2, '0')}`
+          }
+        }
+        
+        csvLinhas.push([
+          new Date(reg.data).toLocaleDateString('pt-BR'),
+          reg.entrada_1 || '-',
+          reg.saida_1 || '-',
+          reg.entrada_2 || '-',
+          reg.saida_2 || '-',
+          reg.entrada_3 || '-',
+          reg.saida_3 || '-',
+          totalHorasDia
+        ].join(';'))
+      })
+    }
+    
+    csvLinhas.push('')
+    csvLinhas.push('RESUMO')
+    csvLinhas.push(`Dias Trabalhados: ${diasTrabalhados}`)
+    csvLinhas.push(`Total de Horas: ${totalHoras}`)
+    csvLinhas.push('')
+    csvLinhas.push('DECLARAÇÃO')
+    csvLinhas.push('Declaro que os registros acima estão corretos e conferidos.')
+    csvLinhas.push(`Assinado digitalmente em ${new Date().toLocaleString('pt-BR')}`)
+    
+    const csvCompleto = csvLinhas.join('\n')
     const csvBase64 = Buffer.from(csvCompleto, 'utf-8').toString('base64')
 
     // Obter IP do usuário

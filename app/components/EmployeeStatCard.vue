@@ -1,12 +1,15 @@
 <template>
-  <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-    <div class="flex items-center gap-3">
-      <div :class="['w-10 h-10 rounded-lg flex items-center justify-center', bgColorClass]">
-        <Icon :name="icon" :class="iconColorClass" size="20" />
+  <div class="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div :class="['w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0', bgColorClass]">
+        <Icon :name="icon" :class="iconColorClass" class="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
-      <div>
-        <p class="text-xs text-slate-500 font-medium">{{ label }}</p>
-        <p class="text-lg font-bold text-slate-800">{{ value }}</p>
+      <div class="min-w-0">
+        <p class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
+          <span class="hidden sm:inline">{{ label }}</span>
+          <span class="sm:hidden">{{ shortLabel || label }}</span>
+        </p>
+        <p class="text-base sm:text-lg font-bold text-slate-800">{{ value }}</p>
       </div>
     </div>
   </div>
@@ -16,6 +19,7 @@
 interface Props {
   icon: string
   label: string
+  shortLabel?: string
   value: string | number
   color?: 'blue' | 'amber' | 'purple' | 'green' | 'red'
 }

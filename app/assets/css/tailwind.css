@@ -22,6 +22,40 @@
   --warning: #f59e0b;  /* yellow-500 */
   --error: #ef4444;    /* red-500 */
   --info: #3b82f6;     /* blue-500 */
+  
+  /* Safe Area para dispositivos móveis */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+/* ============================================================================
+   Responsive Base Styles
+   ============================================================================ */
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply antialiased;
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+  
+  /* Prevent zoom on input focus (iOS) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  @screen md {
+    input, select, textarea {
+      font-size: inherit !important;
+    }
+  }
 }
 
 /* ============================================================================
@@ -98,4 +132,227 @@
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-500;
+}
+
+/* ============================================================================
+   Responsive Utilities
+   ============================================================================ */
+
+@layer utilities {
+  /* Container responsivo */
+  .container-responsive {
+    @apply w-full px-4 mx-auto;
+    @apply sm:px-6 md:px-8;
+    @apply max-w-7xl;
+  }
+  
+  /* Grid responsivo para cards */
+  .grid-responsive {
+    @apply grid gap-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .grid-responsive-2 {
+    @apply grid gap-4;
+    @apply grid-cols-1 md:grid-cols-2;
+  }
+  
+  .grid-responsive-3 {
+    @apply grid gap-4;
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  /* Texto responsivo */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  /* Padding responsivo */
+  .p-responsive {
+    @apply p-3 sm:p-4 md:p-6;
+  }
+  
+  .px-responsive {
+    @apply px-3 sm:px-4 md:px-6;
+  }
+  
+  .py-responsive {
+    @apply py-3 sm:py-4 md:py-6;
+  }
+  
+  /* Gap responsivo */
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 md:gap-6;
+  }
+  
+  /* Esconder em mobile */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .hide-tablet {
+    @apply hidden md:block;
+  }
+  
+  .hide-desktop {
+    @apply block md:hidden;
+  }
+  
+  /* Mostrar apenas em mobile */
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+  
+  /* Flex responsivo */
+  .flex-col-mobile {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  .flex-col-tablet {
+    @apply flex flex-col md:flex-row;
+  }
+  
+  /* Botão responsivo */
+  .btn-responsive {
+    @apply px-3 py-2 text-sm sm:px-4 sm:py-2.5 sm:text-base;
+  }
+  
+  /* Card responsivo */
+  .card-responsive {
+    @apply p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl;
+  }
+  
+  /* Modal responsivo */
+  .modal-responsive {
+    @apply w-full max-w-full sm:max-w-lg md:max-w-2xl lg:max-w-4xl;
+    @apply mx-2 sm:mx-4 md:mx-auto;
+    @apply max-h-[90vh] sm:max-h-[85vh];
+  }
+  
+  /* Tabela responsiva */
+  .table-responsive {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Header fixo responsivo */
+  .header-responsive {
+    @apply sticky top-0 z-40;
+    @apply px-3 py-2 sm:px-6 sm:py-4;
+  }
+  
+  /* Sidebar responsiva */
+  .sidebar-responsive {
+    @apply fixed inset-y-0 left-0 z-50;
+    @apply w-64 sm:w-72;
+    @apply transform transition-transform duration-300 ease-in-out;
+    @apply -translate-x-full md:translate-x-0;
+  }
+  
+  .sidebar-responsive.open {
+    @apply translate-x-0;
+  }
+  
+  /* Overlay para sidebar mobile */
+  .sidebar-overlay {
+    @apply fixed inset-0 bg-black/50 z-40;
+    @apply md:hidden;
+  }
+  
+  /* Truncate responsivo */
+  .truncate-responsive {
+    @apply truncate max-w-[150px] sm:max-w-[200px] md:max-w-none;
+  }
+}
+
+/* ============================================================================
+   Mobile-First Component Overrides
+   ============================================================================ */
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 359px) {
+  .container-responsive {
+    @apply px-2;
+  }
+  
+  .card-responsive {
+    @apply p-2;
+  }
+  
+  .btn-responsive {
+    @apply px-2 py-1.5 text-xs;
+  }
+}
+
+/* Ajustes para tablets em modo retrato */
+@media (min-width: 640px) and (max-width: 1023px) and (orientation: portrait) {
+  .grid-responsive {
+    @apply grid-cols-2;
+  }
+}
+
+/* Ajustes para telas grandes (monitores 4K) */
+@media (min-width: 2560px) {
+  .container-responsive {
+    @apply max-w-[1920px];
+  }
+}
+
+/* ============================================================================
+   Touch-Friendly Styles
+   ============================================================================ */
+
+@layer components {
+  /* Botões touch-friendly */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Links touch-friendly */
+  .touch-link {
+    @apply py-2 px-3;
+  }
+  
+  /* Checkbox/Radio touch-friendly */
+  .touch-checkbox {
+    @apply w-5 h-5 sm:w-4 sm:h-4;
+  }
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    @apply bg-white text-black;
+  }
+  
+  .container-responsive {
+    @apply max-w-none px-0;
+  }
 }

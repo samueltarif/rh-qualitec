@@ -225,6 +225,9 @@ export default defineEventHandler(async (event) => {
           console.log(`   💳 Adiantamento do mês anterior (${mesAnteriorStr}/${anoAnterior}): R$ ${valorAdiantamento.toFixed(2)}`)
         }
 
+        // Calcular dias trabalhados no mês
+        const diasTrabalhados = calcularDiasTrabalhados(colab.data_admissao, mes, ano)
+        
         // Totais
         const totalProventos = salarioBase
         const totalDescontos = inss + irrf + valorAdiantamento
@@ -265,6 +268,7 @@ export default defineEventHandler(async (event) => {
           salario_liquido: salarioLiquido,
           fgts,
           valor_adiantamento: valorAdiantamento,
+          dias_trabalhados: diasTrabalhados,
           banco: colab.banco || null,
           agencia: colab.agencia || null,
           conta: colab.conta || null,
@@ -358,3 +362,26 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
+
+// Função auxiliar para calcular dias trabalhados no mês
+function calcularDiasTrabalhados(dataAdmissao: string | null, mes: string, ano: string): number {
+  if (!dataAdmissao) return 30 // Padrão se não tiver data de admissão
+  
+  const admissao = new Date(dataAdmissao + 'T00:00:00')
+  const mesNum = parseInt(mes)
+  const anoNum = parseInt(ano)
+  
+  // Primeiro e último dia do mês
+  const primeiroDiaMes = new Date(anoNum, mesNum - 1, 1)
+  const ultimoDiaMes = new Date(anoNum, mesNum, 0)
+  
+  // Se foi admitido depois do mês em questão, não trabalhou
+  if (admissao > ultimoDiaMes) return 0
+  
+  // Se foi admitido antes do mês, trabalhou o mês todo
+  if (admissao < primeiroDiaMes) return ultimoDiaMes.getDate()
+  
+  // Foi admitido durante o mês - contar dias a partir da admissão
+  const diasTrabalhados = ultimoDiaMes.getDate() - admissao.getDate() + 1
+  return Math.max(0, diasTrabalhados)
+}

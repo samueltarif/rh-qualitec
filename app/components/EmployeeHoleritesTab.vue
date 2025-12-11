@@ -1,103 +1,106 @@
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+  <div class="space-y-4 sm:space-y-6">
+    <!-- Header Responsivo -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h2 class="text-2xl font-bold text-gray-800">Meus Holerites</h2>
-        <p class="text-gray-600">Visualize e baixe seus comprovantes de pagamento</p>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Meus Holerites</h2>
+        <p class="text-sm sm:text-base text-gray-600">Visualize e baixe seus comprovantes de pagamento</p>
       </div>
       <UIButton 
         variant="secondary" 
         icon-left="heroicons:arrow-path"
         @click="carregarHolerites"
         :disabled="loading"
+        size="sm"
+        class="self-start sm:self-auto"
       >
-        Atualizar
+        <span class="hidden sm:inline">Atualizar</span>
+        <span class="sm:hidden">Atualizar</span>
       </UIButton>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-12">
-      <Icon name="heroicons:arrow-path" class="animate-spin text-gray-400 mx-auto mb-4" size="48" />
-      <p class="text-gray-600">Carregando holerites...</p>
+    <div v-if="loading" class="text-center py-8 sm:py-12">
+      <Icon name="heroicons:arrow-path" class="animate-spin text-gray-400 mx-auto mb-4 w-10 h-10 sm:w-12 sm:h-12" />
+      <p class="text-gray-600 text-sm sm:text-base">Carregando holerites...</p>
     </div>
 
-    <!-- Lista de Holerites -->
-    <div v-else-if="holerites.length > 0" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Lista de Holerites - Grid Responsivo -->
+    <div v-else-if="holerites.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
       <div
         v-for="holerite in holerites"
         :key="holerite.id"
-        class="bg-white rounded-xl border-2 border-gray-200 hover:border-blue-400 transition-all group"
+        class="bg-white rounded-lg sm:rounded-xl border-2 border-gray-200 hover:border-blue-400 transition-all group"
       >
-        <div class="p-6 cursor-pointer" @click="visualizarHolerite(holerite)">
+        <div class="p-4 sm:p-6 cursor-pointer" @click="visualizarHolerite(holerite)">
           <!-- Período -->
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <Icon name="heroicons:document-text" class="text-blue-600" size="24" />
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors flex-shrink-0">
+                <Icon name="heroicons:document-text" class="text-blue-600 w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <p class="font-bold text-gray-800">{{ nomeMes(holerite.mes) }}</p>
-                <p class="text-sm text-gray-500">{{ holerite.ano }}</p>
+                <p class="font-bold text-gray-800 text-sm sm:text-base">{{ nomeMes(holerite.mes) }}</p>
+                <p class="text-xs sm:text-sm text-gray-500">{{ holerite.ano }}</p>
               </div>
             </div>
-            <UIBadge :color="getStatusColor(holerite.status)">
+            <UIBadge :color="getStatusColor(holerite.status)" class="text-xs">
               {{ getStatusLabel(holerite.status) }}
             </UIBadge>
           </div>
 
           <!-- Valores -->
-          <div class="space-y-2 mb-4">
-            <div class="flex justify-between text-sm">
+          <div class="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+            <div class="flex justify-between text-xs sm:text-sm">
               <span class="text-gray-600">Salário Bruto</span>
               <span class="font-semibold text-gray-800">{{ formatCurrency(calcularTotalProventos(holerite)) }}</span>
             </div>
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-xs sm:text-sm">
               <span class="text-gray-600">Descontos</span>
               <span class="font-semibold text-red-600">{{ formatCurrency(calcularTotalDescontos(holerite)) }}</span>
             </div>
             <div class="flex justify-between pt-2 border-t border-gray-200">
-              <span class="font-semibold text-gray-700">Líquido</span>
-              <span class="font-bold text-green-600 text-lg">{{ formatCurrency(calcularSalarioLiquido(holerite)) }}</span>
+              <span class="font-semibold text-gray-700 text-xs sm:text-sm">Líquido</span>
+              <span class="font-bold text-green-600 text-base sm:text-lg">{{ formatCurrency(calcularSalarioLiquido(holerite)) }}</span>
             </div>
           </div>
 
           <!-- Data de Visualização -->
-          <div v-if="holerite.visualizado_em" class="text-xs text-gray-500 flex items-center gap-1">
-            <Icon name="heroicons:eye" size="14" />
+          <div v-if="holerite.visualizado_em" class="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+            <Icon name="heroicons:eye" class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             Visualizado em {{ formatDate(holerite.visualizado_em) }}
           </div>
-          <div v-else class="text-xs text-blue-600 font-semibold flex items-center gap-1">
-            <Icon name="heroicons:sparkles" size="14" />
+          <div v-else class="text-[10px] sm:text-xs text-blue-600 font-semibold flex items-center gap-1">
+            <Icon name="heroicons:sparkles" class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             Novo holerite disponível
           </div>
         </div>
 
-        <!-- Footer com Botões -->
-        <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between gap-2">
+        <!-- Footer com Botões - Responsivo -->
+        <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-200 flex items-center justify-between gap-2">
           <button
             @click="visualizarHolerite(holerite)"
-            class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+            class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-100 active:bg-blue-200 rounded-lg transition-colors touch-manipulation"
           >
-            <Icon name="heroicons:eye" size="16" />
-            Visualizar
+            <Icon name="heroicons:eye" class="w-4 h-4" />
+            <span>Visualizar</span>
           </button>
           <button
             @click.stop="baixarPDFDireto(holerite)"
-            class="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100 rounded-lg transition-colors"
+            class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-green-700 hover:bg-green-100 active:bg-green-200 rounded-lg transition-colors touch-manipulation"
           >
-            <Icon name="heroicons:arrow-down-tray" size="16" />
-            Baixar PDF
+            <Icon name="heroicons:arrow-down-tray" class="w-4 h-4" />
+            <span>Baixar PDF</span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
-      <Icon name="heroicons:document-text" class="text-gray-300 mx-auto mb-4" size="64" />
-      <h3 class="text-lg font-semibold text-gray-800 mb-2">Nenhum holerite disponível</h3>
-      <p class="text-gray-600">Seus holerites aparecerão aqui quando forem gerados pelo RH</p>
+    <!-- Empty State - Responsivo -->
+    <div v-else class="text-center py-8 sm:py-12 bg-white rounded-lg sm:rounded-xl border-2 border-dashed border-gray-300">
+      <Icon name="heroicons:document-text" class="text-gray-300 mx-auto mb-3 sm:mb-4 w-12 h-12 sm:w-16 sm:h-16" />
+      <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Nenhum holerite disponível</h3>
+      <p class="text-sm sm:text-base text-gray-600 px-4">Seus holerites aparecerão aqui quando forem gerados pelo RH</p>
     </div>
 
     <!-- Modal de Visualização -->
@@ -214,8 +217,14 @@ const baixarPDFDireto = async (holerite: any) => {
   }
 }
 
-// Funções de cálculo dinâmico
+// Funções de cálculo - usa valores do banco quando disponíveis
 const calcularTotalProventos = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.total_proventos !== undefined && holerite.total_proventos !== null) {
+    return holerite.total_proventos
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   let total = holerite.salario_base || 0
   
   // Horas extras
@@ -242,6 +251,12 @@ const calcularTotalProventos = (holerite: any) => {
 }
 
 const calcularTotalDescontos = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.total_descontos !== undefined && holerite.total_descontos !== null) {
+    return holerite.total_descontos
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   let total = 0
   
   // Impostos
@@ -276,6 +291,12 @@ const calcularTotalDescontos = (holerite: any) => {
 }
 
 const calcularSalarioLiquido = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.salario_liquido !== undefined && holerite.salario_liquido !== null) {
+    return holerite.salario_liquido
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   return calcularTotalProventos(holerite) - calcularTotalDescontos(holerite)
 }
 

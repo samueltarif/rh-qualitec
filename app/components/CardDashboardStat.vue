@@ -1,15 +1,15 @@
 <template>
-  <div class="group relative overflow-hidden rounded-2xl backdrop-blur-xl border p-6 hover:border-opacity-50 transition-all" :class="gradientClass">
-    <div class="absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl" :class="glowClass"></div>
+  <div class="group relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-xl border p-3 sm:p-4 lg:p-6 hover:border-opacity-50 transition-all" :class="gradientClass">
+    <div class="absolute top-0 right-0 w-16 sm:w-20 h-16 sm:h-20 rounded-full blur-2xl" :class="glowClass"></div>
     <div class="relative">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="iconBgClass">
-          <Icon :name="icon" :class="iconClass" size="24" />
+      <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" :class="iconBgClass">
+          <Icon :name="icon" :class="iconClass" class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
-        <span :class="labelClass" class="text-sm font-medium">{{ label }}</span>
+        <span :class="labelClass" class="text-xs sm:text-sm font-medium truncate">{{ label }}</span>
       </div>
-      <p :class="valueSize" class="font-bold text-white">{{ formattedValue }}</p>
-      <p class="text-gray-400 text-sm mt-1">{{ subtitle }}</p>
+      <p :class="valueSize" class="font-bold text-white truncate">{{ formattedValue }}</p>
+      <p class="text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{{ subtitle }}</p>
     </div>
   </div>
 </template>
@@ -42,7 +42,11 @@ const glowClass = computed(() => colors.value.glow)
 const iconBgClass = computed(() => colors.value.iconBg)
 const iconClass = computed(() => colors.value.icon)
 const labelClass = computed(() => colors.value.label)
-const valueSize = computed(() => props.size === 'sm' ? 'text-2xl' : props.format === 'currency' ? 'text-3xl' : 'text-4xl')
+const valueSize = computed(() => {
+  if (props.size === 'sm') return 'text-lg sm:text-xl lg:text-2xl'
+  if (props.format === 'currency') return 'text-xl sm:text-2xl lg:text-3xl'
+  return 'text-2xl sm:text-3xl lg:text-4xl'
+})
 
 const formattedValue = computed(() => {
   if (props.format === 'currency') {

@@ -429,34 +429,22 @@ const nomeMes = (mes: number) => {
 }
 
 const calcularDiasTrabalhados = () => {
-  // Se não for 13º salário ou não tiver data de admissão, retorna 30 (padrão mensal)
-  if (props.holerite.tipo !== 'decimo_terceiro' || !props.holerite.data_admissao) {
+  // Para holerites mensais, sempre 30 dias
+  if (props.holerite.tipo !== 'decimo_terceiro') {
     return 30
   }
 
-  try {
-    // Parse da data de admissão (formato ISO: YYYY-MM-DD)
-    const dataAdmissao = new Date(props.holerite.data_admissao + 'T00:00:00')
-    
-    // Último dia do mês da competência
-    const ano = props.holerite.ano
-    const mes = props.holerite.mes
-    const ultimoDiaMes = new Date(ano, mes, 0) // Dia 0 do próximo mês = último dia do mês atual
-    
-    // Se a admissão foi depois da competência, retorna 0
-    if (dataAdmissao > ultimoDiaMes) {
-      return 0
-    }
-    
-    // Calcular diferença em dias
-    const diffTime = ultimoDiaMes.getTime() - dataAdmissao.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 para incluir o dia da admissão
-    
-    return diffDays
-  } catch (error) {
-    console.error('Erro ao calcular dias trabalhados:', error)
-    return 30
+  // Para 13º salário, calcular baseado nos meses trabalhados
+  const mesesTrabalhados = props.holerite.meses_trabalhados || 12
+  
+  // Se trabalhou o ano completo (12 meses), considera 365 dias
+  // Senão, calcula proporcionalmente
+  if (mesesTrabalhados >= 12) {
+    return 365
   }
+  
+  // Cálculo proporcional: (meses trabalhados / 12) * 365
+  return Math.round((mesesTrabalhados / 12) * 365)
 }
 
 const imprimir = () => {
@@ -464,67 +452,18 @@ const imprimir = () => {
 }
 
 const calcularTotalProventos = () => {
-  let total = props.holerite.salario_base || 0
-  
-  // Horas extras
-  total += props.holerite.valor_horas_extras_50 || 0
-  total += props.holerite.valor_horas_extras_100 || 0
-  
-  // Adicionais
-  total += props.holerite.bonus || 0
-  total += props.holerite.comissoes || 0
-  total += props.holerite.adicional_insalubridade || 0
-  total += props.holerite.adicional_periculosidade || 0
-  total += props.holerite.adicional_noturno || 0
-  total += props.holerite.outros_proventos || 0
-  
-  // Itens personalizados - proventos
-  const itensPersonalizados = props.holerite.itens_personalizados || []
-  itensPersonalizados
-    .filter((item: any) => item.tipo === 'provento')
-    .forEach((item: any) => {
-      total += item.valor || 0
-    })
-  
-  return total
+  // Usar o valor já calculado do banco de dados
+  return props.holerite.total_proventos || 0
 }
 
 const calcularTotalDescontos = () => {
-  let total = 0
-  
-  // Impostos
-  total += props.holerite.inss || 0
-  total += props.holerite.irrf || 0
-  
-  // Descontos
-  total += props.holerite.adiantamento || 0
-  total += props.holerite.emprestimos || 0
-  total += props.holerite.faltas || 0
-  total += props.holerite.atrasos || 0
-  total += props.holerite.outros_descontos || 0
-  
-  // Benefícios (descontados)
-  total += props.holerite.plano_saude || 0
-  total += props.holerite.plano_odontologico || 0
-  total += props.holerite.seguro_vida || 0
-  total += props.holerite.auxilio_creche || 0
-  total += props.holerite.auxilio_educacao || 0
-  total += props.holerite.auxilio_combustivel || 0
-  total += props.holerite.outros_beneficios || 0
-  
-  // Itens personalizados - descontos
-  const itensPersonalizados = props.holerite.itens_personalizados || []
-  itensPersonalizados
-    .filter((item: any) => item.tipo === 'desconto')
-    .forEach((item: any) => {
-      total += item.valor || 0
-    })
-  
-  return total
+  // Usar o valor já calculado do banco de dados
+  return props.holerite.total_descontos || 0
 }
 
 const calcularSalarioLiquido = () => {
-  return calcularTotalProventos() - calcularTotalDescontos()
+  // Usar o valor já calculado do banco de dados
+  return props.holerite.salario_liquido || 0
 }
 
 const baixarPDF = async () => {

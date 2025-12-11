@@ -3,8 +3,8 @@
     <!-- Header -->
     <EmployeeHeader empresa="Qualitec Instrumentos de Medição" />
 
-    <!-- Content -->
-    <div class="max-w-7xl mx-auto p-6">
+    <!-- Content Responsivo -->
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
       <!-- Saudação -->
       <EmployeeSaudacao
         :nome="perfil?.colaborador?.nome || currentUser?.nome"
@@ -13,14 +13,14 @@
       />
 
       <!-- Stats Cards -->
-      <EmployeeStatsGrid :stats="stats" class="mb-8" />
+      <EmployeeStatsGrid :stats="stats" class="mb-4 sm:mb-6 lg:mb-8" />
 
       <!-- Contador de Horas Trabalhadas Hoje -->
       <EmployeeHorasTrabalhadasCard
         :registro-hoje="registroHoje"
         :horas-formatadas="horasTrabalhadasHoje"
         :em-andamento="registroEmAndamento"
-        class="mb-6"
+        class="mb-4 sm:mb-6"
       />
 
       <!-- Registro de Ponto Rápido com GPS -->
@@ -28,7 +28,7 @@
         :data-hora-atual="dataHoraAtual"
         :ultimo-registro="ultimoRegistro"
         @sucesso="handlePontoSucesso"
-        class="mb-8"
+        class="mb-4 sm:mb-6 lg:mb-8"
       />
 
       <!-- Tabs de Navegação -->

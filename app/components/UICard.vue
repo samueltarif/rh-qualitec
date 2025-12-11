@@ -1,18 +1,20 @@
 <template>
   <div :class="cardClasses">
-    <div v-if="title || $slots.header" class="flex items-center justify-between mb-4">
+    <div v-if="title || $slots.header" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
       <slot name="header">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
           <div v-if="icon" :class="iconContainerClasses">
-            <Icon :name="icon" :class="iconClasses" size="24" />
+            <Icon :name="icon" :class="iconClasses" class="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <h3 class="text-lg font-bold text-gray-800">{{ title }}</h3>
-            <p v-if="subtitle" class="text-sm text-gray-500">{{ subtitle }}</p>
+          <div class="min-w-0">
+            <h3 class="text-base sm:text-lg font-bold text-gray-800 truncate">{{ title }}</h3>
+            <p v-if="subtitle" class="text-xs sm:text-sm text-gray-500 truncate">{{ subtitle }}</p>
           </div>
         </div>
       </slot>
-      <slot name="actions" />
+      <div class="flex-shrink-0">
+        <slot name="actions" />
+      </div>
     </div>
     <slot />
   </div>
@@ -35,7 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const cardClasses = computed(() => {
-  const base = 'bg-white rounded-xl'
+  const base = 'bg-white rounded-lg sm:rounded-xl'
   const variants = {
     default: 'border border-gray-200',
     bordered: 'border-2 border-gray-300',
@@ -43,9 +45,9 @@ const cardClasses = computed(() => {
   }
   const paddings = {
     none: '',
-    sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8',
+    sm: 'p-3 sm:p-4',
+    md: 'p-4 sm:p-6',
+    lg: 'p-5 sm:p-8',
   }
   return [base, variants[props.variant], paddings[props.padding]].join(' ')
 })
@@ -58,7 +60,7 @@ const iconContainerClasses = computed(() => {
     amber: 'bg-amber-100',
     gray: 'bg-gray-100',
   }
-  return `w-12 h-12 rounded-lg flex items-center justify-center ${colors[props.iconColor]}`
+  return `w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${colors[props.iconColor]}`
 })
 
 const iconClasses = computed(() => {

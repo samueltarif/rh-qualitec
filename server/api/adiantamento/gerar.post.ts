@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
           continue
         }
 
-        // Calcular valor do adiantamento
+        // Calcular valor do adiantamento (40% do salário)
         const valorAdiantamento = (salarioBase * percentualAdiantamento) / 100
         const valorAdiantamentoArredondado = Math.round(valorAdiantamento * 100) / 100
 
@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
           agencia: colab.agencia || null,
           conta: colab.conta || null,
           data_admissao: colab.data_admissao || null,
-          observacoes: `Adiantamento Salarial - ${percentualAdiantamento}% do salário\nPagamento previsto: dia ${diaPagamento}/${mes}/${ano}\nSem descontos (INSS, IRRF)\nValor será descontado no holerite final do mês`,
+          observacoes: `Adiantamento Salarial - ${percentualAdiantamento}% do salário\nPagamento previsto: dia ${diaPagamento}/${mes}/${ano}\nSem descontos (INSS, IRRF)\nValor será descontado no holerite final do mês\n\nCálculo: R$ ${salarioBase.toFixed(2)} × ${percentualAdiantamento}% = R$ ${valorAdiantamentoArredondado.toFixed(2)}`,
           status: 'gerado',
           gerado_por: userData.id,
           gerado_em: new Date().toISOString(),

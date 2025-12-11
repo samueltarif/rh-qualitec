@@ -290,8 +290,14 @@ const stats = computed(() => {
   return { total, gerados, enviados, valorTotal }
 })
 
-// Funções de cálculo dinâmico
+// Funções de cálculo - usa valores do banco quando disponíveis
 const calcularTotalProventos = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.total_proventos !== undefined && holerite.total_proventos !== null) {
+    return holerite.total_proventos
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   let total = holerite.salario_base || 0
   
   // Horas extras
@@ -318,6 +324,12 @@ const calcularTotalProventos = (holerite: any) => {
 }
 
 const calcularTotalDescontos = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.total_descontos !== undefined && holerite.total_descontos !== null) {
+    return holerite.total_descontos
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   let total = 0
   
   // Impostos
@@ -352,6 +364,12 @@ const calcularTotalDescontos = (holerite: any) => {
 }
 
 const calcularSalarioLiquido = (holerite: any) => {
+  // Se já existe o valor calculado no banco, usar ele
+  if (holerite.salario_liquido !== undefined && holerite.salario_liquido !== null) {
+    return holerite.salario_liquido
+  }
+  
+  // Senão, calcular dinamicamente (fallback)
   return calcularTotalProventos(holerite) - calcularTotalDescontos(holerite)
 }
 
