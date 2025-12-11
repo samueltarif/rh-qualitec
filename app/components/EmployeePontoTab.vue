@@ -492,9 +492,9 @@ const baixarCSV = async () => {
   
   try {
     // Primeiro buscar o ID do colaborador atual
-    const { data: funcionario } = await useFetch('/api/funcionario/perfil')
+    const funcionario = await $fetch('/api/funcionario/perfil')
     
-    if (!funcionario.value?.appUser?.colaborador_id) {
+    if (!funcionario?.appUser?.colaborador_id) {
       throw new Error('Colaborador não encontrado')
     }
     
@@ -528,14 +528,14 @@ const baixarPDF = async () => {
   
   try {
     // Primeiro buscar o ID do colaborador atual
-    const { data: funcionario } = await useFetch('/api/funcionario/perfil')
+    const funcionario = await $fetch('/api/funcionario/perfil')
     
-    if (!funcionario.value?.appUser?.colaborador_id) {
+    if (!funcionario?.appUser?.colaborador_id) {
       throw new Error('Colaborador não encontrado')
     }
     
     // Usar API pública que funciona para todos os colaboradores
-    const url = `/api/public/ponto/download-html?colaborador_id=${funcionario.value.appUser.colaborador_id}&mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`
+    const url = `/api/public/ponto/download-html?colaborador_id=${funcionario.appUser.colaborador_id}&mes=${mesSelecionado.value}&ano=${anoSelecionado.value}`
     window.open(url, '_blank')
     
   } catch (error) {
