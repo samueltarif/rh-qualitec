@@ -10,20 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Buscar empresa do usuário
-    const { data: appUserData } = await client
-      .from('app_users')
-      .select('id, empresa_id')
-      .eq('auth_uid', user.id)
-      .single()
-
-    const appUser = appUserData as { id: string; empresa_id: string } | null
-
-    if (!appUser?.empresa_id) {
-      throw createError({ statusCode: 400, message: 'Usuário não vinculado a uma empresa' })
-    }
-
-    // Validações
+    // Validações básicas
     if (!body.colaborador_id) {
       throw createError({ statusCode: 400, message: 'Colaborador é obrigatório' })
     }
@@ -44,11 +31,10 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Já existe um registro de ponto para este colaborador nesta data' })
     }
 
-    // Criar registro
+    // Criar registro (sem empresa_id - sistema single-tenant)
     const { data, error } = await (client
       .from('registros_ponto') as any)
       .insert({
-        empresa_id: appUser.empresa_id,
         colaborador_id: body.colaborador_id,
         data: body.data,
         entrada_1: body.entrada_1 || null,

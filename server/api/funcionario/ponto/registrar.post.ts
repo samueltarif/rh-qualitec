@@ -5,54 +5,36 @@ export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
   const body = await readBody(event)
 
-  // O Supabase retorna o ID no campo 'sub', não 'id'
   const userId = user?.sub || user?.id
-  
-  console.log('🔍 [PONTO] User object:', user)
-  console.log('🔍 [PONTO] User ID (id):', user?.id)
-  console.log('🔍 [PONTO] User ID (sub):', user?.sub)
-  console.log('🔍 [PONTO] User ID final:', userId)
 
   if (!user || !userId) {
-    console.error('❌ [PONTO] Usuário não autenticado ou sem ID')
     throw createError({ statusCode: 401, message: 'Não autenticado ou sessão inválida' })
   }
 
-  // Validar que userId é um UUID válido
+  // Validar UUID
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRegex.test(userId)) {
-    console.error('❌ [PONTO] User ID inválido:', userId)
     throw createError({ statusCode: 401, message: 'ID de usuário inválido. Faça login novamente.' })
   }
 
   try {
-    console.log('🔍 [PONTO] ========== INÍCIO ==========')
-    console.log('🔍 [PONTO] User ID:', userId)
-    console.log('🔍 [PONTO] User email:', user?.email)
-    console.log('🔍 [PONTO] Body:', body)
-
-    // ============================================
-    // VALIDAÇÃO OBRIGATÓRIA DE GEOLOCALIZAÇÃO
-    // ============================================
+    // Validação de GPS
     if (!body.latitude || !body.longitude) {
-      console.error('❌ [PONTO] Geolocalização não fornecida')
       throw createError({ 
         statusCode: 400, 
         message: 'GPS obrigatório. Ative a localização e tente novamente.' 
       })
     }
 
-    // Verificar se está dentro do raio permitido
+    // Verificar local permitido
     const { data: verificacao, error: verificacaoError } = await client
       .rpc('verificar_local_permitido', {
         p_latitude: body.latitude,
         p_longitude: body.longitude
       })
 
-    console.log('🔍 [PONTO] Verificação GPS:', verificacao)
-
     if (verificacaoError) {
-      console.error('❌ [PONTO] Erro ao verificar localização:', verificacaoError)
+      console.error('Erro ao verificar localização:', verificacaoError)
       throw createError({ 
         statusCode: 500, 
         message: 'Erro ao verificar localização. Tente novamente.' 
@@ -64,95 +46,42 @@ export default defineEventHandler(async (event) => {
     if (!localInfo || !localInfo.dentro_raio) {
       const distancia = localInfo?.distancia || 'desconhecida'
       const localNome = localInfo?.local_nome || 'local cadastrado'
-      
-      console.error('❌ [PONTO] Fora do raio permitido:', distancia, 'm')
       throw createError({ 
         statusCode: 403, 
         message: `Você está fora do local permitido. Distância: ${distancia}m do ${localNome}. Aproxime-se para bater ponto.` 
       })
     }
-
-    console.log('✅ [PONTO] Dentro do raio permitido:', localInfo.distancia, 'm')
     
     // Buscar colaborador_id do usuário
     const { data: appUserData, error: appUserError } = await client
       .from('app_users')
-      .select('id, colaborador_id, role')
+      .select('id, colaborador_id')
       .eq('auth_uid', userId)
       .single()
 
-    console.log('🔍 [PONTO] App User Data:', JSON.stringify(appUserData, null, 2))
-    console.log('🔍 [PONTO] App User Error:', appUserError)
-
-    if (appUserError) {
-      console.error('❌ [PONTO] Erro ao buscar app_user:', appUserError)
+    if (appUserError || !appUserData) {
       throw createError({ 
         statusCode: 400, 
-        message: `Erro ao buscar dados do usuário: ${appUserError.message}`,
-        data: { error: appUserError }
+        message: 'Usuário não encontrado no sistema'
       })
     }
 
-    const appUser = appUserData as { id: string; colaborador_id: string | null; role: string } | null
-
-    if (!appUser) {
-      console.error('❌ [PONTO] App user não encontrado')
-      throw createError({ statusCode: 404, message: 'Usuário não encontrado no sistema' })
-    }
+    const appUser = appUserData as { id: string; colaborador_id: string | null }
 
     if (!appUser.colaborador_id) {
-      console.error('❌ [PONTO] Usuário sem colaborador_id')
-      console.error('❌ [PONTO] App User completo:', appUser)
       throw createError({ 
         statusCode: 400, 
-        message: 'Usuário não vinculado a um colaborador. Execute o FIX_HOLERITES_USUARIO.sql no banco de dados.' 
+        message: 'Usuário não vinculado a um colaborador.' 
       })
     }
 
-    console.log('✅ [PONTO] Colaborador ID:', appUser.colaborador_id)
-
-    // Buscar empresa_id do colaborador
-    const { data: colabData, error: colabError } = await client
-      .from('colaboradores')
-      .select('empresa_id, nome')
-      .eq('id', appUser.colaborador_id)
-      .single()
-
-    console.log('🔍 [PONTO] Colaborador Data:', JSON.stringify(colabData, null, 2))
-    console.log('🔍 [PONTO] Colaborador Error:', colabError)
-
-    if (colabError) {
-      console.error('❌ [PONTO] Erro ao buscar colaborador:', colabError)
-      throw createError({ 
-        statusCode: 400, 
-        message: `Erro ao buscar colaborador: ${colabError.message}`,
-        data: { error: colabError }
-      })
-    }
-
-    const colaborador = colabData as { empresa_id: string; nome: string } | null
-
-    if (!colaborador) {
-      console.error('❌ [PONTO] Colaborador não encontrado')
-      throw createError({ statusCode: 404, message: 'Colaborador não encontrado' })
-    }
-
-    if (!colaborador.empresa_id) {
-      console.error('❌ [PONTO] Colaborador sem empresa_id')
-      throw createError({ statusCode: 400, message: 'Colaborador não vinculado a uma empresa' })
-    }
-    
-    const empresaId = colaborador.empresa_id
-    console.log('✅ [PONTO] Empresa ID:', empresaId)
-
-    // Converter para horário de São Paulo (UTC-3)
+    // Horário de São Paulo
     const agoraUTC = new Date()
     const agoraSP = new Date(agoraUTC.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    
     const hoje = agoraSP.toISOString().split('T')[0]
     const agora = agoraSP.toTimeString().split(' ')[0].substring(0, 5)
 
-    // Verificar se já existe registro para hoje
+    // Verificar registro existente
     const { data: regData, error: fetchError } = await client
       .from('registros_ponto')
       .select('*')
@@ -160,12 +89,11 @@ export default defineEventHandler(async (event) => {
       .eq('data', hoje)
       .maybeSingle()
 
-    const registroExistente = regData as any
-
     if (fetchError) {
-      console.error('Erro ao buscar registro existente:', fetchError)
       throw createError({ statusCode: 500, message: 'Erro ao verificar registros do dia' })
     }
+
+    const registroExistente = regData as any
 
     if (registroExistente) {
       // Atualizar registro existente
@@ -200,7 +128,7 @@ export default defineEventHandler(async (event) => {
       updates.longitude = body.longitude
       updates.local_id = localInfo.local_id
       updates.distancia_metros = localInfo.distancia
-      updates.fora_do_raio = false // Sempre false pois já validamos acima
+      updates.fora_do_raio = false
 
       const { data, error } = await (client
         .from('registros_ponto') as any)
@@ -210,7 +138,6 @@ export default defineEventHandler(async (event) => {
         .single()
 
       if (error) {
-        console.error('Erro ao atualizar ponto:', error)
         throw createError({ statusCode: 500, message: error.message })
       }
 
@@ -221,11 +148,10 @@ export default defineEventHandler(async (event) => {
         message: `${tipoRegistro} registrada às ${agora}` 
       }
     } else {
-      // Criar novo registro
+      // Criar novo registro (SEM empresa_id - sistema single-tenant)
       const { data, error } = await (client
         .from('registros_ponto') as any)
         .insert({
-          empresa_id: empresaId,
           colaborador_id: appUser.colaborador_id,
           data: hoje,
           entrada_1: agora,
@@ -235,7 +161,7 @@ export default defineEventHandler(async (event) => {
           longitude: body.longitude,
           local_id: localInfo.local_id,
           distancia_metros: localInfo.distancia,
-          fora_do_raio: false, // Sempre false pois já validamos acima
+          fora_do_raio: false,
           status: 'Normal'
         })
         .select()
@@ -254,13 +180,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (e: any) {
-    console.error('❌ [PONTO] ========== ERRO ==========')
-    console.error('❌ [PONTO] Erro completo:', e)
-    console.error('❌ [PONTO] Stack:', e.stack)
-    console.error('❌ [PONTO] StatusCode:', e.statusCode)
-    console.error('❌ [PONTO] Message:', e.message)
-    console.error('❌ [PONTO] Data:', e.data)
-    
+    console.error('Erro ao registrar ponto:', e)
     throw createError({ 
       statusCode: e.statusCode || 500, 
       message: e.message || 'Erro ao registrar ponto',

@@ -9,7 +9,7 @@
       <!-- Avatar -->
       <div 
         class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-        :class="theme === 'admin' ? 'bg-red-700' : 'bg-blue-900'"
+        :class="theme === 'admin' ? 'bg-red-700' : theme === 'light' ? 'bg-blue-600' : 'bg-blue-900'"
       >
         {{ initials }}
       </div>
@@ -47,7 +47,7 @@
           <div class="flex items-center gap-3">
             <div 
               class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-              :class="theme === 'admin' ? 'bg-red-700' : 'bg-blue-900'"
+              :class="theme === 'admin' ? 'bg-red-700' : theme === 'light' ? 'bg-blue-600' : 'bg-blue-900'"
             >
               {{ initials }}
             </div>
@@ -64,7 +64,7 @@
             <span class="text-sm text-gray-600">Role:</span>
             <span 
               class="badge"
-              :class="theme === 'admin' ? 'badge-error' : 'badge-info'"
+              :class="theme === 'admin' ? 'badge-error' : theme === 'light' ? 'badge-primary' : 'badge-info'"
             >
               {{ currentUser?.role }}
             </span>
@@ -96,7 +96,7 @@
 
 <script setup lang="ts">
 interface Props {
-  theme?: 'admin' | 'employee' | 'default'
+  theme?: 'admin' | 'employee' | 'default' | 'light'
 }
 
 const props = withDefaults(defineProps<Props>(), {
