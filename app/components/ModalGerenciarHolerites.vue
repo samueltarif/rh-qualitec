@@ -62,6 +62,37 @@
         </div>
       </div>
 
+      <!-- Barra de Ações em Massa -->
+      <div v-if="modoSelecao" class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <Icon name="heroicons:check-circle" class="text-red-700" size="24" />
+            <div>
+              <p class="font-semibold text-gray-800">{{ selecionados.length }} holerite(s) selecionado(s)</p>
+              <p class="text-sm text-gray-600">Selecione os holerites que deseja excluir</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <UIButton 
+              variant="secondary" 
+              size="sm"
+              @click="cancelarSelecao"
+            >
+              Cancelar
+            </UIButton>
+            <UIButton 
+              variant="danger" 
+              size="sm"
+              icon-left="heroicons:trash"
+              @click="excluirSelecionados"
+              :disabled="selecionados.length === 0"
+            >
+              Excluir Selecionados ({{ selecionados.length }})
+            </UIButton>
+          </div>
+        </div>
+      </div>
+
       <!-- Filtros -->
       <div class="bg-white rounded-xl border-2 border-gray-200 p-4">
         <div class="grid md:grid-cols-5 gap-3">
@@ -100,17 +131,58 @@
             </select>
           </div>
 
-          <div class="flex items-end">
+          <div class="flex items-end gap-2">
             <UIButton 
               variant="secondary" 
               size="sm"
               icon-left="heroicons:x-mark"
               @click="limparFiltros"
-              class="w-full"
+              class="flex-1"
             >
               Limpar
             </UIButton>
           </div>
+        </div>
+        
+        <!-- Ações em Massa -->
+        <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+          <UIButton 
+            v-if="!modoSelecao"
+            variant="secondary" 
+            size="sm"
+            icon-left="heroicons:check-circle"
+            @click="ativarModoSelecao"
+            :disabled="holeristesFiltrados.length === 0"
+          >
+            Selecionar Múltiplos
+          </UIButton>
+          <UIButton 
+            v-if="!modoSelecao"
+            variant="danger" 
+            size="sm"
+            icon-left="heroicons:trash"
+            @click="confirmarExcluirTodos"
+            :disabled="holeristesFiltrados.length === 0"
+          >
+            Excluir Todos Filtrados ({{ holeristesFiltrados.length }})
+          </UIButton>
+          <UIButton 
+            v-if="modoSelecao"
+            variant="secondary" 
+            size="sm"
+            @click="selecionarTodos"
+          >
+            Selecionar Todos ({{ holeristesFiltrados.length }})
+          </UIButton>
+          <UIButton 
+            v-if="modoSelecao && selecionados.length > 0"
+            variant="secondary" 
+            size="sm"
+            @click="desmarcarTodos"
+          >
+            Desmarcar Todos
+          </UIButton>
+        </div>
         </div>
       </div>
 
@@ -125,12 +197,28 @@
         <div
           v-for="holerite in holeristesFiltrados"
           :key="holerite.id"
-          class="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-red-300 transition-colors"
+          class="bg-white border-2 rounded-xl p-4 transition-all cursor-pointer"
+          :class="{
+            'border-red-500 bg-red-50': modoSelecao && selecionados.includes(holerite.id),
+            'border-gray-200 hover:border-red-300': !modoSelecao || !selecionados.includes(holerite.id)
+          }"
+          @click="modoSelecao && toggleSelecao(holerite.id)"
         >
           <div class="flex items-start justify-between mb-3">
-            <div class="flex-1">
-              <h4 class="font-semibold text-gray-800">{{ holerite.nome_colaborador }}</h4>
-              <p class="text-sm text-gray-500">{{ nomeMes(holerite.mes) }}/{{ holerite.ano }}</p>
+            <div class="flex items-start gap-2 flex-1">
+              <!-- Checkbox de Seleção -->
+              <div v-if="modoSelecao" class="mt-1">
+                <input 
+                  type="checkbox" 
+                  :checked="selecionados.includes(holerite.id)"
+                  @click.stop="toggleSelecao(holerite.id)"
+                  class="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-800">{{ holerite.nome_colaborador }}</h4>
+                <p class="text-sm text-gray-500">{{ nomeMes(holerite.mes) }}/{{ holerite.ano }}</p>
+              </div>
             </div>
             <span 
               class="px-2 py-1 text-xs font-medium rounded-lg"
@@ -159,12 +247,12 @@
             </div>
           </div>
 
-          <div class="flex gap-2">
+          <div v-if="!modoSelecao" class="flex gap-2">
             <UIButton 
               variant="secondary" 
               size="sm"
               icon-left="heroicons:eye"
-              @click="visualizarHolerite(holerite)"
+              @click.stop="visualizarHolerite(holerite)"
               class="flex-1"
             >
               Ver
@@ -174,7 +262,7 @@
               variant="danger" 
               size="sm"
               icon-left="heroicons:trash"
-              @click="confirmarExclusao(holerite)"
+              @click.stop="confirmarExclusao(holerite)"
             >
               Excluir
             </UIButton>
@@ -248,6 +336,9 @@ const filtros = ref({
   status: '',
   tipo: ''
 })
+
+const selecionados = ref<string[]>([])
+const modoSelecao = ref(false)
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -395,11 +486,13 @@ const limparFiltros = () => {
 }
 
 const carregarHolerites = async () => {
+  const toast = useToast()
+  
   try {
     await buscarHolerites()
   } catch (error: any) {
     console.error('Erro ao carregar holerites:', error)
-    alert('Erro ao carregar holerites: ' + error.message)
+    toast.error('Erro ao carregar', error.message || 'Não foi possível carregar os holerites.')
   }
 }
 
@@ -414,21 +507,149 @@ const confirmarExclusao = (holerite: any) => {
 }
 
 const excluirHolerite = async () => {
+  const toast = useToast()
+  
   if (!holeriteParaExcluir.value) return
 
   excluindo.value = true
   try {
     await excluirHoleriteAPI(holeriteParaExcluir.value.id)
-    alert('Holerite excluído com sucesso!')
+    toast.success('Holerite excluído!', 'O holerite foi removido com sucesso.')
     modalExcluir.value = false
     holeriteParaExcluir.value = null
     await carregarHolerites()
   } catch (error: any) {
     console.error('Erro ao excluir holerite:', error)
-    alert('Erro ao excluir holerite: ' + error.message)
+    toast.error('Erro ao excluir', error.message || 'Não foi possível excluir o holerite.')
   } finally {
     excluindo.value = false
   }
+}
+
+// Funções de seleção múltipla
+const ativarModoSelecao = () => {
+  modoSelecao.value = true
+  selecionados.value = []
+}
+
+const cancelarSelecao = () => {
+  modoSelecao.value = false
+  selecionados.value = []
+}
+
+const toggleSelecao = (id: string) => {
+  const index = selecionados.value.indexOf(id)
+  if (index > -1) {
+    selecionados.value.splice(index, 1)
+  } else {
+    selecionados.value.push(id)
+  }
+}
+
+const selecionarTodos = () => {
+  selecionados.value = holeristesFiltrados.value.map(h => h.id)
+}
+
+const desmarcarTodos = () => {
+  selecionados.value = []
+}
+
+const excluirSelecionados = async () => {
+  const toast = useToast()
+  
+  if (selecionados.value.length === 0) return
+  
+  if (!confirm(`Deseja realmente excluir ${selecionados.value.length} holerite(s) selecionado(s)?`)) {
+    return
+  }
+  
+  excluindo.value = true
+  let sucesso = 0
+  let erros = 0
+  
+  for (const id of selecionados.value) {
+    try {
+      await excluirHoleriteAPI(id)
+      sucesso++
+    } catch (error) {
+      erros++
+      console.error('Erro ao excluir holerite:', id, error)
+    }
+  }
+  
+  excluindo.value = false
+  
+  if (erros === 0) {
+    toast.success(
+      'Holerites excluídos!',
+      `${sucesso} holerite(s) foram removidos com sucesso.`
+    )
+  } else {
+    toast.warning(
+      'Exclusão parcial',
+      `${sucesso} excluídos com sucesso, ${erros} com erro.`
+    )
+  }
+  
+  selecionados.value = []
+  modoSelecao.value = false
+  await carregarHolerites()
+}
+
+const confirmarExcluirTodos = async () => {
+  const toast = useToast()
+  
+  if (holeristesFiltrados.value.length === 0) return
+  
+  const confirmacao = confirm(
+    `⚠️ ATENÇÃO!\n\nVocê está prestes a excluir TODOS os ${holeristesFiltrados.value.length} holerite(s) filtrados.\n\nEsta ação NÃO pode ser desfeita!\n\nDeseja continuar?`
+  )
+  
+  if (!confirmacao) return
+  
+  // Segunda confirmação para segurança
+  const segundaConfirmacao = confirm(
+    `Confirme novamente: Excluir ${holeristesFiltrados.value.length} holerite(s)?`
+  )
+  
+  if (!segundaConfirmacao) return
+  
+  excluindo.value = true
+  let sucesso = 0
+  let erros = 0
+  
+  const loadingId = toast.info(
+    'Excluindo holerites...',
+    `Processando ${holeristesFiltrados.value.length} holerites...`,
+    0
+  )
+  
+  for (const holerite of holeristesFiltrados.value) {
+    try {
+      await excluirHoleriteAPI(holerite.id)
+      sucesso++
+    } catch (error) {
+      erros++
+      console.error('Erro ao excluir holerite:', holerite.id, error)
+    }
+  }
+  
+  excluindo.value = false
+  toast.removeToast(loadingId)
+  
+  if (erros === 0) {
+    toast.success(
+      'Todos os holerites excluídos!',
+      `${sucesso} holerite(s) foram removidos com sucesso.`
+    )
+  } else {
+    toast.warning(
+      'Exclusão parcial',
+      `${sucesso} excluídos com sucesso, ${erros} com erro.`
+    )
+  }
+  
+  await carregarHolerites()
 }
 
 const fechar = () => {
