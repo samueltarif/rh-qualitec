@@ -47,29 +47,34 @@ export default defineEventHandler(async (event) => {
     }
 
     // Buscar assinatura do ponto para o mês/ano
-    try {
-      const { data: assinatura, error } = await client
-        .from('assinaturas_ponto')
-        .select('*')
-        .eq('colaborador_id', appUser.colaborador_id)
-        .eq('mes', mes)
-        .eq('ano', ano)
-        .single()
+    const { data: assinatura, error } = await client
+      .from('assinaturas_ponto')
+      .select('*')
+      .eq('colaborador_id', appUser.colaborador_id)
+      .eq('mes', mes)
+      .eq('ano', ano)
+      .maybeSingle()
 
-      console.log('🔍 [ASSINATURA PONTO] Assinatura encontrada:', assinatura)
-      console.log('🔍 [ASSINATURA PONTO] Erro:', error)
+    console.log('🔍 [ASSINATURA PONTO] Assinatura encontrada:', assinatura)
+    console.log('🔍 [ASSINATURA PONTO] Erro:', error)
 
-      return {
-        success: true,
-        data: assinatura || null
-      }
-    } catch (error: any) {
-      // Se a tabela não existir ou houver erro, retornar null
-      console.warn('Tabela assinaturas_ponto não encontrada ou erro:', error.message)
+    // Se houver erro na consulta, retornar null
+    if (error) {
+      console.warn('Erro ao buscar assinatura:', error.message)
       return {
         success: true,
         data: null
       }
+    }
+
+    // Só retornar assinatura se ela realmente existir E tiver hash válido
+    const assinaturaValida = assinatura && 
+                            assinatura.hash_assinatura && 
+                            assinatura.hash_assinatura.trim() !== ''
+
+    return {
+      success: true,
+      data: assinaturaValida ? assinatura : null
     }
 
   } catch (error: any) {

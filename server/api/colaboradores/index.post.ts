@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
     const camposOpcionais = [
       'matricula', 'email_corporativo', 'email_pessoal', 'telefone', 'celular',
       'data_nascimento', 'data_admissao', 'salario', 'tipo_contrato', 'status',
-      'cargo_id', 'departamento_id', 'rg', 'sexo', 'estado_civil',
+      'cargo_id', 'departamento_id', 'gestor_id', 'rg', 'sexo', 'estado_civil',
       'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
       'banco_codigo', 'banco_nome', 'agencia', 'conta', 'tipo_conta', 'pix',
       'pis', 'ctps', 'ctps_serie', 'jornada_trabalho', 'observacoes_rh'
@@ -113,7 +113,7 @@ export default defineEventHandler(async (event) => {
     console.log('[CREATE COLABORADOR] Dados para inserção:', colaboradorData)
 
     // Inserir colaborador - NÃO incluir o campo 'id' para deixar o PostgreSQL gerar automaticamente
-    const { data: colaborador, error: createError } = await $fetch<any>(`${supabaseUrl}/rest/v1/colaboradores`, {
+    const colaborador = await $fetch<any>(`${supabaseUrl}/rest/v1/colaboradores`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceKey}`,
@@ -124,20 +124,44 @@ export default defineEventHandler(async (event) => {
       body: colaboradorData,
     })
 
-    if (createError) {
-      console.error('[CREATE COLABORADOR] Erro ao criar:', createError)
-      throw createError
+    if (!colaborador) {
+      console.error('[CREATE COLABORADOR] Erro: resposta vazia do servidor')
+      throw createError({ 
+        statusCode: 500, 
+        statusMessage: 'Erro interno: resposta vazia do servidor' 
+      })
     }
 
     console.log('[CREATE COLABORADOR] Colaborador criado com sucesso:', colaborador)
 
-    const colaboradorId = colaborador[0]?.id || colaborador.id
+    // Garantir que temos o ID do colaborador criado
+    let colaboradorId
+    if (Array.isArray(colaborador) && colaborador.length > 0) {
+      colaboradorId = colaborador[0].id
+    } else if (colaborador.id) {
+      colaboradorId = colaborador.id
+    } else {
+      console.error('[CREATE COLABORADOR] Erro: ID não encontrado na resposta:', colaborador)
+      throw createError({ 
+        statusCode: 500, 
+        statusMessage: 'Erro interno: ID do colaborador não foi retornado' 
+      })
+    }
 
-    // GARANTIR VINCULAÇÃO AUTOMÁTICA - Criar app_user se não existir
-    if (colaboradorId) {
+    // CRIAÇÃO DE USUÁRIO APENAS SE EXPLICITAMENTE SOLICITADO
+    if (body.criar_acesso_sistema === true) {
       try {
+        // Validar se tem email válido
+        const email = body.email_corporativo || body.email_pessoal
+        if (!email) {
+          throw createError({ 
+            statusCode: 400, 
+            statusMessage: 'Email é obrigatório para criar acesso ao sistema' 
+          })
+        }
+
         // Verificar se já existe app_user para este colaborador
-        const { data: existingAppUser } = await $fetch<any[]>(`${supabaseUrl}/rest/v1/app_users?colaborador_id=eq.${colaboradorId}&select=id`, {
+        const existingAppUser = await $fetch<any[]>(`${supabaseUrl}/rest/v1/app_users?colaborador_id=eq.${colaboradorId}&select=id`, {
           headers: { 
             'Authorization': `Bearer ${serviceKey}`, 
             'apikey': serviceKey 
@@ -145,15 +169,16 @@ export default defineEventHandler(async (event) => {
         })
 
         if (!existingAppUser || existingAppUser.length === 0) {
-          // Criar app_user básico para garantir vinculação
+          console.log('[CREATE COLABORADOR] Criando acesso ao sistema (solicitado explicitamente):', colaboradorId)
+          
+          // Criar app_user apenas se solicitado
           const appUserData = {
             colaborador_id: colaboradorId,
             nome: body.nome,
-            email: body.email_corporativo || body.email_pessoal || `${body.nome.toLowerCase().replace(/\s+/g, '.')}@temp.com`,
-            empresa_id: empresaId
+            email: email,
+            empresa_id: empresaId,
+            ativo: true
           }
-
-          console.log('[CREATE COLABORADOR] Criando app_user para vinculação:', appUserData)
 
           await $fetch(`${supabaseUrl}/rest/v1/app_users`, {
             method: 'POST',
@@ -165,18 +190,25 @@ export default defineEventHandler(async (event) => {
             body: appUserData,
           })
 
-          console.log('[CREATE COLABORADOR] App_user criado para vinculação automática')
+          console.log('[CREATE COLABORADOR] Acesso ao sistema criado com sucesso')
+        } else {
+          console.log('[CREATE COLABORADOR] Colaborador já possui acesso ao sistema')
         }
       } catch (appUserError: any) {
-        console.error('[CREATE COLABORADOR] Erro ao criar app_user para vinculação:', appUserError)
-        // Não falhar a operação, mas logar
+        console.error('[CREATE COLABORADOR] Erro ao criar acesso ao sistema:', appUserError)
+        throw createError({ 
+          statusCode: 500, 
+          statusMessage: `Erro ao criar acesso: ${appUserError.message || 'Erro desconhecido'}` 
+        })
       }
+    } else {
+      console.log('[CREATE COLABORADOR] Colaborador criado SEM acesso ao sistema (não solicitado)')
     }
 
     // Se foi solicitado criar usuário junto
     if (body.criar_usuario && body.usuario_email && body.usuario_senha) {
       try {
-        console.log('[CREATE COLABORADOR] Criando usuário para colaborador:', colaborador[0]?.id || colaborador.id)
+        console.log('[CREATE COLABORADOR] Criando usuário para colaborador:', colaboradorId)
         
         const userResponse = await $fetch('/api/users/create', {
           method: 'POST',

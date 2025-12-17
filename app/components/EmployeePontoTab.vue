@@ -436,7 +436,19 @@ const carregarAssinatura = async () => {
         ano: anoSelecionado.value
       }
     })
-    assinaturaMes.value = data.value
+    
+    // Só definir assinaturaMes se realmente houver dados válidos
+    const responseData = data.value as any
+    if (responseData && responseData.data && responseData.data.hash_assinatura) {
+      assinaturaMes.value = responseData.data
+    } else {
+      assinaturaMes.value = null
+    }
+    
+    console.log('🔍 Assinatura carregada:', {
+      responseData,
+      assinaturaMes: assinaturaMes.value
+    })
     
     // Verificar se precisa renovar assinatura (apenas para mês atual)
     const hoje = new Date()
@@ -445,6 +457,7 @@ const carregarAssinatura = async () => {
     }
   } catch (error) {
     console.error('Erro ao carregar assinatura:', error)
+    assinaturaMes.value = null
   }
 }
 

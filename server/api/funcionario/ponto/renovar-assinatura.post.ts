@@ -29,17 +29,20 @@ export default defineEventHandler(async (event) => {
       colaborador = colaboradorByAuth
     }
 
-    // Estratégia 2: Por email se não encontrou
+    // Estratégia 2: Por app_users se não encontrou
     if (!colaborador && user.email) {
-      const { data: colaboradorByEmail } = await supabase
-        .from('colaboradores')
-        .select('id, nome')
-        .eq('email_corporativo', user.email)
+      const { data: appUser } = await supabase
+        .from('app_users')
+        .select(`
+          colaborador_id,
+          colaborador:colaboradores(id, nome)
+        `)
+        .eq('email', user.email)
         .maybeSingle()
       
-      if (colaboradorByEmail) {
-        console.log('✅ Colaborador encontrado por email:', colaboradorByEmail.nome)
-        colaborador = colaboradorByEmail
+      if (appUser?.colaborador) {
+        console.log('✅ Colaborador encontrado por app_users:', appUser.colaborador.nome)
+        colaborador = appUser.colaborador
       }
     }
 
