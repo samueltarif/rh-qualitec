@@ -300,18 +300,40 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
-  if (!form.value.nome || !form.value.cpf) { alert('Nome e CPF são obrigatórios!'); return }
+  const toast = useToast()
+  
+  if (!form.value.nome || !form.value.cpf) { 
+    toast.warning('Campos obrigatórios', 'Nome e CPF são obrigatórios!')
+    return 
+  }
+  
   saving.value = true
   try {
     const result = isEditing.value && editingId.value
       ? await updateColaborador(editingId.value, form.value)
       : await createColaborador(form.value)
-    if (result.success) { alert(isEditing.value ? 'Colaborador atualizado!' : 'Colaborador cadastrado!'); closeModal() }
-    else alert(`Erro: ${result.error}`)
-  } finally { saving.value = false }
+    
+    if (result.success) { 
+      toast.success(
+        isEditing.value ? 'Colaborador atualizado!' : 'Colaborador cadastrado!',
+        isEditing.value 
+          ? `Os dados de ${form.value.nome} foram atualizados com sucesso.`
+          : `${form.value.nome} foi adicionado ao sistema com sucesso.`
+      )
+      closeModal() 
+    } else {
+      toast.error('Erro ao salvar', result.error || 'Ocorreu um erro ao processar a solicitação.')
+    }
+  } catch (error: any) {
+    toast.error('Erro inesperado', error.message || 'Não foi possível completar a operação.')
+  } finally { 
+    saving.value = false 
+  }
 }
 
 const handleBuscarCep = async () => {
+  const toast = useToast()
+  
   if (!form.value.cep) return
   buscandoCep.value = true
   const result = await buscarCep(form.value.cep)
@@ -320,7 +342,10 @@ const handleBuscarCep = async () => {
     form.value.bairro = result.data.bairro
     form.value.cidade = result.data.cidade
     form.value.estado = result.data.estado
-  } else alert(result.error || 'CEP não encontrado')
+    toast.success('CEP encontrado!', 'Endereço preenchido automaticamente.')
+  } else {
+    toast.error('CEP não encontrado', result.error || 'Verifique o CEP digitado e tente novamente.')
+  }
   buscandoCep.value = false
 }
 
@@ -338,20 +363,31 @@ const closeDocumentosModal = () => {
 }
 
 const handleUpload = async (file: File, tipo: string) => {
+  const toast = useToast()
+  
   if (!selectedColaborador.value) return
   uploading.value = true
   const result = await uploadDocumento(selectedColaborador.value.id, file, tipo)
   if (result.success) {
     const docsResult = await fetchDocumentos(selectedColaborador.value.id)
     documentos.value = docsResult.success ? docsResult.data || [] : []
-  } else alert(`Erro: ${result.error}`)
+    toast.success('Documento enviado!', `${file.name} foi carregado com sucesso.`)
+  } else {
+    toast.error('Erro no upload', result.error || 'Não foi possível enviar o documento.')
+  }
   uploading.value = false
 }
 
 const handleRemoveDocumento = async (id: string) => {
+  const toast = useToast()
+  
   if (!confirm('Deseja remover este documento?')) return
   const result = await removeDocumento(id)
-  if (result.success) documentos.value = documentos.value.filter(d => d.id !== id)
-  else alert(`Erro: ${result.error}`)
+  if (result.success) {
+    documentos.value = documentos.value.filter(d => d.id !== id)
+    toast.success('Documento removido!', 'O documento foi excluído com sucesso.')
+  } else {
+    toast.error('Erro ao remover', result.error || 'Não foi possível excluir o documento.')
+  }
 }
 </script>
