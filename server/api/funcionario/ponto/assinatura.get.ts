@@ -2,93 +2,81 @@ import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   try {
-    const supabase = await serverSupabaseClient(event)
+    const client = await serverSupabaseClient(event)
     const user = await serverSupabaseUser(event)
-
-    if (!user) {
-      throw createError({
-        statusCode: 401,
-        message: 'Não autenticado'
-      })
-    }
-
     const query = getQuery(event)
-    const mes = parseInt(query.mes as string)
-    const ano = parseInt(query.ano as string)
+    const { mes, ano } = query
 
+    // Validar parâmetros
     if (!mes || !ano) {
       throw createError({
         statusCode: 400,
-        message: 'Mês e ano são obrigatórios'
+        statusMessage: 'Mês e ano são obrigatórios'
       })
     }
 
-    // Buscar colaborador pelo auth_uid ou email
-    let colaborador: any = null
-    
-    // Primeiro tenta buscar pelo auth_uid
-    try {
-      const { data: colaboradorByAuth } = await supabase
-        .from('colaboradores')
-        .select('id')
-        .eq('auth_uid', user.id)
-        .single()
+    // O Supabase retorna o ID no campo 'sub', não 'id'
+    const userId = user?.id || user?.sub
 
-      if (colaboradorByAuth) {
-        colaborador = colaboradorByAuth
-      }
-    } catch (error) {
-      // Ignora erro se não encontrar
+    if (!user || !userId) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Usuário não autenticado'
+      })
     }
 
-    // Se não encontrou pelo auth_uid, busca pelo email
-    if (!colaborador) {
-      try {
-        const { data: colaboradorByEmail } = await supabase
-          .from('colaboradores')
-          .select('id')
-          .eq('email_corporativo', user.email)
-          .single()
-        
-        colaborador = colaboradorByEmail
-      } catch (error) {
-        // Ignora erro se não encontrar
-      }
-    }
+    console.log('🔍 [ASSINATURA PONTO] User ID:', userId)
+    console.log('🔍 [ASSINATURA PONTO] Query:', query)
 
-    if (!colaborador) {
+    // Buscar colaborador_id do usuário
+    const { data: appUserData, error: appUserError } = await client
+      .from('app_users')
+      .select('colaborador_id')
+      .eq('auth_uid', userId)
+      .single()
+
+    console.log('🔍 [ASSINATURA PONTO] App User:', appUserData)
+    console.log('🔍 [ASSINATURA PONTO] Error:', appUserError)
+
+    const appUser = appUserData as any
+    if (!appUser?.colaborador_id) {
       throw createError({
         statusCode: 404,
-        message: 'Colaborador não encontrado'
+        statusMessage: 'Usuário não encontrado no sistema'
       })
     }
 
-    // Buscar assinatura
+    // Buscar assinatura do ponto para o mês/ano
     try {
-      const { data: assinatura } = await supabase
+      const { data: assinatura, error } = await client
         .from('assinaturas_ponto')
         .select('*')
-        .eq('colaborador_id', colaborador.id)
+        .eq('colaborador_id', appUser.colaborador_id)
         .eq('mes', mes)
         .eq('ano', ano)
         .single()
 
-      return assinatura || null
-    } catch (error) {
-      // Se não encontrar assinatura, retorna null
-      return null
+      console.log('🔍 [ASSINATURA PONTO] Assinatura encontrada:', assinatura)
+      console.log('🔍 [ASSINATURA PONTO] Erro:', error)
+
+      return {
+        success: true,
+        data: assinatura || null
+      }
+    } catch (error: any) {
+      // Se a tabela não existir ou houver erro, retornar null
+      console.warn('Tabela assinaturas_ponto não encontrada ou erro:', error.message)
+      return {
+        success: true,
+        data: null
+      }
     }
 
   } catch (error: any) {
-    console.error('Erro na API de assinatura:', error)
-    
-    if (error.statusCode) {
-      throw error
-    }
-    
+    console.error('Erro ao buscar assinatura:', error)
     throw createError({
-      statusCode: 500,
-      message: 'Erro interno do servidor'
+      statusCode: error.statusCode || 500,
+      statusMessage: error.statusMessage || 'Erro interno do servidor'
     })
   }
 })

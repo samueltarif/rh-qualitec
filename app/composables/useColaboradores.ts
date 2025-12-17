@@ -213,6 +213,9 @@ export const useColaboradores = () => {
         // Pular campos undefined
         if (value === undefined) continue
         
+        // NUNCA incluir o campo 'id' - deixar o PostgreSQL gerar automaticamente
+        if (key === 'id') continue
+        
         // Pular campos de relacionamento (objetos aninhados do JOIN)
         if (key === 'cargo' || key === 'departamento' || key === 'gestor') continue
         
@@ -230,39 +233,25 @@ export const useColaboradores = () => {
       // Adicionar empresa_id
       cleanData.empresa_id = empresaId
 
-      // 1. Criar colaborador
-      const { data: colaborador, error: createError } = await (supabase as any)
-        .from('colaboradores')
-        .insert(cleanData)
-        .select()
-        .single()
+      // 1. Criar colaborador usando o endpoint POST
+      const response = await $fetch('/api/colaboradores', {
+        method: 'POST',
+        body: {
+          ...cleanData,
+          criar_usuario: criarUsuario,
+          usuario_email: usuarioEmail,
+          usuario_senha: usuarioSenha,
+          usuario_role: usuarioRole,
+        },
+      })
 
-      if (createError) throw createError
-
-      // 2. Criar usuário se solicitado
-      if (criarUsuario && usuarioEmail && usuarioSenha) {
-        try {
-          const response = await $fetch('/api/users/create', {
-            method: 'POST',
-            body: {
-              nome: colaboradorData.nome,
-              email: usuarioEmail,
-              password: usuarioSenha,
-              role: usuarioRole,
-              colaborador_id: colaborador.id,
-              ativo: usuarioAtivo,
-            },
-          })
-
-          if (!response.success) {
-            console.warn('Colaborador criado mas usuário falhou:', response.error)
-            // Não falhar a operação toda, apenas avisar
-          }
-        } catch (userError: any) {
-          console.warn('Erro ao criar usuário:', userError)
-          // Não falhar a operação toda
-        }
+      if (!response.success) {
+        throw new Error(response.error || 'Erro ao criar colaborador')
       }
+
+      const colaborador = response.data
+
+      // Criação de usuário é feita pelo endpoint se solicitado
 
       await fetchColaboradores()
       return { success: true, data: colaborador }

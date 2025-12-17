@@ -149,7 +149,17 @@ export const useFuncionario = () => {
       if (mes) params.append('mes', mes.toString())
       if (ano) params.append('ano', ano.toString())
       
-      const data = await $fetch<RegistroPonto[]>(`/api/funcionario/ponto?${params}`)
+      // Forçar não cachear
+      params.append('_t', Date.now().toString())
+      
+      const data = await $fetch<RegistroPonto[]>(`/api/funcionario/ponto?${params}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+      
+      console.log('🔄 [FETCH PONTO] Registros recebidos:', data?.length || 0)
       registrosPonto.value = data
     } catch (e: any) {
       console.error('Erro ao buscar ponto:', e)

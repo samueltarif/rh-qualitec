@@ -4,10 +4,13 @@ export default defineEventHandler(async (event) => {
   try {
     console.log('🔍 [PDF] Iniciando geração de relatório')
     
-    const supabase = await serverSupabaseClient(event)
+    const client = await serverSupabaseClient(event)
     const user = await serverSupabaseUser(event)
 
-    if (!user) {
+    // O Supabase retorna o ID no campo 'sub', não 'id'
+    const userId = user?.id || user?.sub
+
+    if (!user || !userId) {
       console.error('❌ [PDF] Usuário não autenticado')
       throw createError({
         statusCode: 401,
@@ -16,41 +19,43 @@ export default defineEventHandler(async (event) => {
     }
 
     console.log('✅ [PDF] Usuário autenticado:', user.email)
+    console.log('🔍 [PDF] User ID:', userId)
 
-    // Buscar colaborador
-    let colaborador: any = null
-    
-    // Buscar por auth_uid
-    const { data: colaboradorByAuth } = await supabase
-      .from('colaboradores')
-      .select('id, nome, matricula')
-      .eq('auth_uid', user.id)
-      .maybeSingle()
+    // Buscar colaborador_id do usuário
+    const { data: appUserData, error: appUserError } = await client
+      .from('app_users')
+      .select('colaborador_id')
+      .eq('auth_uid', userId)
+      .single()
 
-    if (colaboradorByAuth) {
-      colaborador = colaboradorByAuth
-      console.log('✅ [PDF] Colaborador encontrado por auth_uid:', colaborador.nome)
-    } else {
-      // Buscar por email
-      const { data: colaboradorByEmail } = await supabase
-        .from('colaboradores')
-        .select('id, nome, matricula')
-        .eq('email_corporativo', user.email)
-        .maybeSingle()
-      
-      if (colaboradorByEmail) {
-        colaborador = colaboradorByEmail
-        console.log('✅ [PDF] Colaborador encontrado por email:', colaborador.nome)
-      }
-    }
+    console.log('🔍 [PDF] App User:', appUserData)
+    console.log('🔍 [PDF] Error:', appUserError)
 
-    if (!colaborador) {
+    const appUser = appUserData as any
+    if (!appUser?.colaborador_id) {
       console.error('❌ [PDF] Colaborador não encontrado')
       throw createError({
         statusCode: 404,
         message: 'Colaborador não encontrado'
       })
     }
+
+    // Buscar dados do colaborador
+    const { data: colaborador } = await client
+      .from('colaboradores')
+      .select('id, nome, matricula')
+      .eq('id', appUser.colaborador_id)
+      .single()
+
+    if (!colaborador) {
+      console.error('❌ [PDF] Dados do colaborador não encontrados')
+      throw createError({
+        statusCode: 404,
+        message: 'Dados do colaborador não encontrados'
+      })
+    }
+
+    console.log('✅ [PDF] Colaborador encontrado:', colaborador.nome)
 
     // Buscar registros dos últimos 30 dias
     const dataFim = new Date()
@@ -59,7 +64,7 @@ export default defineEventHandler(async (event) => {
 
     console.log('📅 [PDF] Buscando registros de', dataInicio.toISOString().split('T')[0], 'até', dataFim.toISOString().split('T')[0])
 
-    const { data: registros } = await supabase
+    const { data: registros } = await client
       .from('registros_ponto')
       .select('*')
       .eq('colaborador_id', colaborador.id)
@@ -75,7 +80,7 @@ export default defineEventHandler(async (event) => {
     
     console.log('🔍 [PDF] Buscando assinatura para:', { mes: mesAtual, ano: anoAtual })
     
-    const { data: assinatura } = await supabase
+    const { data: assinatura } = await client
       .from('assinaturas_ponto')
       .select('*')
       .eq('colaborador_id', colaborador.id)

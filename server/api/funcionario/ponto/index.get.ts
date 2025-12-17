@@ -1,6 +1,11 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
+  // Forçar não cachear
+  setHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+  setHeader(event, 'Pragma', 'no-cache')
+  setHeader(event, 'Expires', '0')
+  
   const client = await serverSupabaseClient(event)
   const user = await serverSupabaseUser(event)
   const query = getQuery(event)

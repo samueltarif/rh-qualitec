@@ -2,19 +2,21 @@ import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   try {
-    const supabase = await serverSupabaseClient(event)
+    const client = await serverSupabaseClient(event)
     const user = await serverSupabaseUser(event)
+    const query = getQuery(event)
+    const mes = parseInt(query.mes as string)
+    const ano = parseInt(query.ano as string)
 
-    if (!user) {
+    // O Supabase retorna o ID no campo 'sub', não 'id'
+    const userId = user?.id || user?.sub
+
+    if (!user || !userId) {
       throw createError({
         statusCode: 401,
         message: 'Não autenticado'
       })
     }
-
-    const query = getQuery(event)
-    const mes = parseInt(query.mes as string)
-    const ano = parseInt(query.ano as string)
 
     if (!mes || !ano) {
       throw createError({
@@ -23,40 +25,21 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Buscar colaborador pelo auth_uid ou email
-    let colaborador: any = null
-    
-    // Primeiro tenta buscar pelo auth_uid
-    try {
-      const { data: colaboradorByAuth } = await supabase
-        .from('colaboradores')
-        .select('id')
-        .eq('auth_uid', user.id)
-        .single()
+    console.log('🔍 [CSV] User ID:', userId)
+    console.log('🔍 [CSV] Query:', query)
 
-      if (colaboradorByAuth) {
-        colaborador = colaboradorByAuth
-      }
-    } catch (error) {
-      // Ignora erro se não encontrar
-    }
+    // Buscar colaborador_id do usuário
+    const { data: appUserData, error: appUserError } = await client
+      .from('app_users')
+      .select('colaborador_id')
+      .eq('auth_uid', userId)
+      .single()
 
-    // Se não encontrou pelo auth_uid, busca pelo email
-    if (!colaborador) {
-      try {
-        const { data: colaboradorByEmail } = await supabase
-          .from('colaboradores')
-          .select('id')
-          .eq('email_corporativo', user.email)
-          .single()
-        
-        colaborador = colaboradorByEmail
-      } catch (error) {
-        // Ignora erro se não encontrar
-      }
-    }
+    console.log('🔍 [CSV] App User:', appUserData)
+    console.log('🔍 [CSV] Error:', appUserError)
 
-    if (!colaborador) {
+    const appUser = appUserData as any
+    if (!appUser?.colaborador_id) {
       throw createError({
         statusCode: 404,
         message: 'Colaborador não encontrado'
@@ -64,10 +47,10 @@ export default defineEventHandler(async (event) => {
     }
 
     // Buscar assinatura
-    const { data: assinatura, error } = await supabase
+    const { data: assinatura, error } = await client
       .from('assinaturas_ponto')
       .select('arquivo_csv')
-      .eq('colaborador_id', colaborador.id)
+      .eq('colaborador_id', appUser.colaborador_id)
       .eq('mes', mes)
       .eq('ano', ano)
       .single()

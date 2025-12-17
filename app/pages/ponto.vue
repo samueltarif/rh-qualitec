@@ -204,14 +204,11 @@
                   </span>
                 </td>
                 <td class="px-4 py-3 text-center">
-                  <div class="flex items-center justify-center gap-1">
-                    <button @click="editarRegistro(r)" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
-                      <Icon name="heroicons:pencil-square" size="18" />
-                    </button>
-                    <button @click="excluirRegistro(r)" class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Excluir">
-                      <Icon name="heroicons:trash" size="18" />
-                    </button>
-                  </div>
+                  <PontoActionButtons 
+                    :registro="r"
+                    @edit="editarRegistro"
+                    @delete="excluirRegistro"
+                  />
                 </td>
               </tr>
             </tbody>
@@ -615,10 +612,24 @@ const excluirRegistro = async (registro: any) => {
   if (!confirm(`Excluir registro de ${registro.colaborador?.nome}?`)) return
   try { 
     await $fetch(`/api/ponto/${registro.id}`, { method: 'DELETE' })
-    await buscarRegistros()
-    await buscarStats() 
+    
+    // Remover imediatamente da lista local para feedback visual instantâneo
+    const index = registros.value.findIndex(r => r.id === registro.id)
+    if (index > -1) {
+      registros.value.splice(index, 1)
+    }
+    
+    // Recarregar dados do servidor para garantir sincronização
+    await Promise.all([buscarRegistros(), buscarStats()])
+    
+    // Mostrar feedback de sucesso
+    alert('Registro excluído com sucesso!')
   } catch (e: any) { 
-    alert(e.message || 'Erro ao excluir') 
+    console.error('Erro ao excluir registro:', e)
+    alert(e.data?.message || e.message || 'Erro ao excluir registro') 
+    
+    // Em caso de erro, recarregar dados para garantir consistência
+    await buscarRegistros()
   } 
 }
 

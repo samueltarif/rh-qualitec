@@ -35,45 +35,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Usuário não encontrado' })
     }
 
-    // Buscar empresa_id
-    let empresaId: string | null = null
-    
-    if (appUser.colaborador_id) {
-      // Se tem colaborador_id, busca empresa do colaborador
-      const { data: colabData } = await client
-        .from('colaboradores')
-        .select('empresa_id')
-        .eq('id', appUser.colaborador_id)
-        .single()
-      
-      const colaborador = colabData as { empresa_id: string } | null
-      empresaId = colaborador?.empresa_id || null
-    } else {
-      // Se não tem colaborador_id (admin), busca a primeira empresa
-      const { data: empresaData } = await client
-        .from('empresas')
-        .select('id')
-        .limit(1)
-        .single()
-      
-      const empresa = empresaData as { id: string } | null
-      empresaId = empresa?.id || null
-    }
-
-    if (!empresaId) {
-      throw createError({ statusCode: 400, message: 'Nenhuma empresa encontrada' })
-    }
-
-    // Verificar se o registro pertence à empresa
+    // Sistema single-tenant - não precisa validar empresa_id
+    // Verificar se o registro existe
     const { data: registroData } = await client
       .from('registros_ponto')
-      .select('id, empresa_id')
+      .select('id')
       .eq('id', id)
       .single()
 
-    const registro = registroData as { id: string; empresa_id: string } | null
-
-    if (!registro || registro.empresa_id !== empresaId) {
+    if (!registroData) {
       throw createError({ statusCode: 404, message: 'Registro não encontrado' })
     }
 
