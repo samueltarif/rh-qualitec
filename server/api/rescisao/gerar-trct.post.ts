@@ -1,5 +1,4 @@
 import { createError } from 'h3'
-import puppeteer from 'puppeteer'
 import { calcularRescisao } from '../../utils/rescisao-calculator'
 
 export default defineEventHandler(async (event) => {
@@ -20,33 +19,17 @@ export default defineEventHandler(async (event) => {
     // Gerar HTML do TRCT
     const htmlContent = gerarHTMLTRCT(empresa, colaborador, dadosRescisao, calculos)
 
-    // Gerar PDF
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    })
-
-    const page = await browser.newPage()
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
-    
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      margin: {
-        top: '1cm',
-        right: '1cm',
-        bottom: '1cm',
-        left: '1cm'
+    // Retornar dados para o frontend processar
+    return {
+      html: htmlContent,
+      dados: {
+        empresa,
+        colaborador,
+        dadosRescisao,
+        calculos
       },
-      printBackground: true
-    })
-
-    await browser.close()
-
-    // Definir headers para download
-    setHeader(event, 'Content-Type', 'application/pdf')
-    setHeader(event, 'Content-Disposition', `attachment; filename="TRCT_${colaborador.nome.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf"`)
-    
-    return pdfBuffer
+      nomeArquivo: `TRCT_${colaborador.nome.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`
+    }
 
   } catch (error: any) {
     console.error('Erro ao gerar TRCT:', error)
