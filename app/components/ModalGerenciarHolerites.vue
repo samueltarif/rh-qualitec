@@ -183,7 +183,6 @@
             Desmarcar Todos
           </UIButton>
         </div>
-        </div>
       </div>
 
       <!-- Loading -->

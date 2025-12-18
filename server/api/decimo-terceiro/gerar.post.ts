@@ -1,5 +1,15 @@
 import { serverSupabaseClient } from '#supabase/server'
+import { calcularIRRF as calcularIRRFComRedutor } from '../../utils/irrf-lei-15270-2025'
 
+/**
+ * API para gerar 13º salário
+ * IRRF calculado conforme Lei 15.270/2025 (válida a partir de 01/01/2026)
+ * 
+ * REGRA ESPECIAL PARA 13º:
+ * - 1ª parcela: sem IRRF (adiantamento)
+ * - 2ª parcela/integral: IRRF sobre valor total, com redutor aplicado
+ * - rendimentosTributaveisNoMes deve considerar salário + 13º + outras verbas
+ */
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
   
@@ -130,8 +140,11 @@ export default defineEventHandler(async (event) => {
             const primeiraParcela = valor13Total / 2 // 50% pago na 1ª parcela
             
             // Calcular descontos sobre o valor total
+            // IMPORTANTE: Para o redutor da Lei 15.270/2025, considerar rendimentos totais do mês
+            // (salário mensal de dezembro + 13º + outras verbas tributáveis)
+            const rendimentosTotaisMes = salarioBase + valor13Total // Salário + 13º
             descontoINSS = calcularINSS(valor13Total)
-            descontoIRRF = calcularIRRF(valor13Total, descontoINSS, (colaborador as any).dependentes || 0)
+            descontoIRRF = calcularIRRF(valor13Total, descontoINSS, (colaborador as any).dependentes || 0, rendimentosTotaisMes)
             
             // 2ª Parcela = Valor restante (50%) - Descontos
             const valorRestante = valor13Total - primeiraParcela // 50% restante
@@ -148,8 +161,10 @@ export default defineEventHandler(async (event) => {
           } else {
             // Integral: 100% com descontos (pago de uma vez)
             totalProventos = valor13Proporcional
+            // IMPORTANTE: Para o redutor da Lei 15.270/2025, considerar rendimentos totais do mês
+            const rendimentosTotaisMes = salarioBase + valor13Proporcional // Salário + 13º
             descontoINSS = calcularINSS(valor13Proporcional)
-            descontoIRRF = calcularIRRF(valor13Proporcional, descontoINSS, (colaborador as any).dependentes || 0)
+            descontoIRRF = calcularIRRF(valor13Proporcional, descontoINSS, (colaborador as any).dependentes || 0, rendimentosTotaisMes)
             valor13Parcela = valor13Proporcional - descontoINSS - descontoIRRF
             mesHolerite = 12 // Dezembro
             console.log(`   📅 Mês: Dezembro (${mesHolerite})`)
@@ -460,27 +475,26 @@ function calcularINSS(salarioBruto: number): number {
   return Math.round(Math.min(inss, 908.85) * 100) / 100
 }
 
-function calcularIRRF(salarioBruto: number, inss: number, dependentes: number): number {
-  // Tabela IRRF 2025
-  const deducaoPorDependente = 189.59
-  const baseCalculo = salarioBruto - inss - (dependentes * deducaoPorDependente)
-
-  if (baseCalculo <= 2259.20) return 0
-
-  const faixas = [
-    { limite: 2259.20, aliquota: 0, deducao: 0 },           // Isento
-    { limite: 2826.65, aliquota: 0.075, deducao: 169.44 },  // 7,5%
-    { limite: 3751.05, aliquota: 0.15, deducao: 381.44 },   // 15%
-    { limite: 4664.68, aliquota: 0.225, deducao: 662.77 },  // 22,5%
-    { limite: Infinity, aliquota: 0.275, deducao: 896.00 }, // 27,5%
-  ]
-
-  for (const faixa of faixas) {
-    if (baseCalculo <= faixa.limite) {
-      const irrf = baseCalculo * faixa.aliquota - faixa.deducao
-      return Math.round(Math.max(0, irrf) * 100) / 100
-    }
-  }
-
-  return 0
+/**
+ * Calcula IRRF para 13º salário usando a função central com Lei 15.270/2025
+ * 
+ * @param salarioBruto - Valor do 13º (base de cálculo)
+ * @param inss - INSS sobre o 13º
+ * @param dependentes - Número de dependentes
+ * @param rendimentosTotaisMes - Rendimentos totais do mês (salário + 13º + outras verbas)
+ */
+function calcularIRRF(
+  salarioBruto: number, 
+  inss: number, 
+  dependentes: number,
+  rendimentosTotaisMes?: number
+): number {
+  // Usar a função central que implementa a Lei 15.270/2025
+  const resultado = calcularIRRFComRedutor(
+    salarioBruto, 
+    inss, 
+    dependentes, 
+    rendimentosTotaisMes ?? salarioBruto
+  )
+  return resultado.valor
 }

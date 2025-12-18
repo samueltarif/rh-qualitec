@@ -28,18 +28,35 @@ export default defineEventHandler(async (event) => {
     console.log('🔍 [CSV] User ID:', userId)
     console.log('🔍 [CSV] Query:', query)
 
-    // Buscar colaborador_id do usuário
-    const { data: appUserData, error: appUserError } = await client
-      .from('app_users')
-      .select('colaborador_id')
+    // ✅ BUSCA ROBUSTA DO COLABORADOR (igual às outras APIs)
+    let colaboradorId: string | null = null
+    
+    // 1. Buscar por auth_uid na tabela colaboradores
+    const { data: colaboradorByAuth } = await client
+      .from('colaboradores')
+      .select('id, nome')
       .eq('auth_uid', userId)
       .single()
 
-    console.log('🔍 [CSV] App User:', appUserData)
-    console.log('🔍 [CSV] Error:', appUserError)
+    if (colaboradorByAuth) {
+      colaboradorId = colaboradorByAuth.id
+      console.log('✅ [CSV] Colaborador encontrado por auth_uid:', colaboradorByAuth.nome)
+    } else {
+      // 2. Buscar via app_users se não encontrou direto
+      const { data: appUserData } = await client
+        .from('app_users')
+        .select('colaborador_id, nome')
+        .eq('auth_uid', userId)
+        .single()
 
-    const appUser = appUserData as any
-    if (!appUser?.colaborador_id) {
+      if (appUserData?.colaborador_id) {
+        colaboradorId = appUserData.colaborador_id
+        console.log('✅ [CSV] Colaborador encontrado via app_users:', appUserData.nome)
+      }
+    }
+
+    if (!colaboradorId) {
+      console.error('❌ [CSV] Colaborador não encontrado para user:', userId)
       throw createError({
         statusCode: 404,
         message: 'Colaborador não encontrado'
@@ -50,7 +67,7 @@ export default defineEventHandler(async (event) => {
     const { data: assinatura, error } = await client
       .from('assinaturas_ponto')
       .select('arquivo_csv')
-      .eq('colaborador_id', appUser.colaborador_id)
+      .eq('colaborador_id', colaboradorId)
       .eq('mes', mes)
       .eq('ano', ano)
       .single()

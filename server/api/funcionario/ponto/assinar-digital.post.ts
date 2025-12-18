@@ -22,43 +22,97 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Buscar colaborador pelo auth_uid ou email
+    // ✅ BUSCA ROBUSTA DO COLABORADOR - FUNCIONA PARA TODOS
+    const userId = user.sub || user.id
     let colaborador: any = null
     
-    // Primeiro tenta buscar pelo auth_uid
+    console.log(`🔍 Buscando colaborador para user: ${user.email} (ID: ${userId})`)
+    
+    // 1. Buscar pelo auth_uid na tabela colaboradores
     try {
       const { data: colaboradorByAuth } = await supabase
         .from('colaboradores')
-        .select('id, nome')
-        .eq('auth_uid', user.id)
+        .select('id, nome, email_corporativo, auth_uid')
+        .eq('auth_uid', userId)
         .single()
 
       if (colaboradorByAuth) {
         colaborador = colaboradorByAuth
+        console.log(`✅ Colaborador encontrado por auth_uid: ${colaborador.nome}`)
       }
     } catch (error) {
-      // Ignora erro se não encontrar
+      console.log(`⚠️ Não encontrado por auth_uid: ${userId}`)
     }
 
-    // Se não encontrou pelo auth_uid, busca pelo email
-    if (!colaborador) {
+    // 2. Se não encontrou, buscar por email corporativo
+    if (!colaborador && user.email) {
       try {
         const { data: colaboradorByEmail } = await supabase
           .from('colaboradores')
-          .select('id, nome')
+          .select('id, nome, email_corporativo, auth_uid')
           .eq('email_corporativo', user.email)
           .single()
         
-        colaborador = colaboradorByEmail
+        if (colaboradorByEmail) {
+          colaborador = colaboradorByEmail
+          console.log(`✅ Colaborador encontrado por email: ${colaborador.nome}`)
+          
+          // Atualizar auth_uid se estiver vazio
+          if (!colaborador.auth_uid) {
+            await supabase
+              .from('colaboradores')
+              .update({ auth_uid: userId })
+              .eq('id', colaborador.id)
+            console.log(`🔄 Auth_uid atualizado para colaborador: ${colaborador.nome}`)
+          }
+        }
       } catch (error) {
-        // Ignora erro se não encontrar
+        console.log(`⚠️ Não encontrado por email: ${user.email}`)
+      }
+    }
+
+    // 3. Se ainda não encontrou, buscar via app_users
+    if (!colaborador) {
+      try {
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id, nome, email')
+          .eq('auth_uid', userId)
+          .single()
+
+        if (appUser) {
+          console.log(`✅ Colaborador encontrado por app_users: ${appUser.nome}`)
+          
+          // Buscar colaborador pelo nome ou email
+          const { data: colaboradorByNome } = await supabase
+            .from('colaboradores')
+            .select('id, nome, email_corporativo, auth_uid')
+            .or(`nome.ilike.%${appUser.nome}%,email_corporativo.eq.${appUser.email}`)
+            .single()
+
+          if (colaboradorByNome) {
+            colaborador = colaboradorByNome
+            
+            // Atualizar auth_uid se estiver vazio
+            if (!colaborador.auth_uid) {
+              await supabase
+                .from('colaboradores')
+                .update({ auth_uid: userId })
+                .eq('id', colaborador.id)
+              console.log(`🔄 Auth_uid vinculado para colaborador: ${colaborador.nome}`)
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️ Erro ao buscar via app_users:`, error)
       }
     }
 
     if (!colaborador) {
+      console.error(`❌ COLABORADOR NÃO ENCONTRADO - User: ${user.email}, ID: ${userId}`)
       throw createError({
         statusCode: 404,
-        message: 'Colaborador não encontrado'
+        message: 'Colaborador não encontrado. Entre em contato com o administrador.'
       })
     }
 
@@ -115,9 +169,10 @@ export default defineEventHandler(async (event) => {
     const minutos = Math.floor(totalMinutos % 60)
     const totalHoras = `${horas}h${minutos.toString().padStart(2, '0')}`
 
-    // Gerar CSV dos registros com estrutura correta
-    // Usar fuso horário de São Paulo para a data de assinatura
+    // ✅ GERAR CSV APENAS COM REGISTROS REAIS (não criar dias fictícios)
     const dataAssinaturaBR = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    
+    console.log('🔍 [CSV] Gerando CSV para', registros?.length || 0, 'registros')
     
     const csvLinhas: string[] = []
     csvLinhas.push('REGISTRO DE PONTO ELETRÔNICO')
@@ -125,45 +180,60 @@ export default defineEventHandler(async (event) => {
     csvLinhas.push(`Período: ${mes.toString().padStart(2, '0')}/${ano}`)
     csvLinhas.push(`Data de Assinatura: ${dataAssinaturaBR}`)
     csvLinhas.push('')
-    csvLinhas.push('Data;Entrada 1;Saída 1;Entrada 2;Saída 2;Entrada 3;Saída 3;Total Horas')
+    csvLinhas.push('Data;Entrada 1;Saída 1;Entrada 2;Saída 2;Total Horas')
     
+    // ✅ PROCESSAR APENAS OS REGISTROS EXISTENTES
     if (registros && registros.length > 0) {
-      // Agrupar por data e processar
-      const registrosPorDia: Record<string, any> = {}
+      console.log('📊 [CSV] Processando registros:')
       
-      registros.forEach((registro: any) => {
-        if (!registrosPorDia[registro.data]) {
-          registrosPorDia[registro.data] = registro
-        }
-      })
-      
-      Object.values(registrosPorDia).forEach((reg: any) => {
+      registros.forEach((reg: any) => {
+        console.log(`  - ${reg.data}: ${reg.entrada_1} - ${reg.saida_2 || reg.saida_1}`)
+        
         // Calcular total de horas do dia
         let totalHorasDia = '0h00'
-        if (reg.entrada_1 && reg.saida_2) {
-          const entrada = new Date(`${reg.data}T${reg.entrada_1}`)
-          const saida = new Date(`${reg.data}T${reg.saida_2}`)
-          const diffMs = saida.getTime() - entrada.getTime()
-          
-          if (diffMs > 0) {
-            const totalMin = Math.floor(diffMs / (1000 * 60))
-            const horas = Math.floor(totalMin / 60)
-            const minutos = totalMin % 60
-            totalHorasDia = `${horas}h${minutos.toString().padStart(2, '0')}`
+        if (reg.entrada_1) {
+          const saida = reg.saida_2 || reg.saida_1
+          if (saida) {
+            const entrada = new Date(`${reg.data}T${reg.entrada_1}`)
+            const saidaTime = new Date(`${reg.data}T${saida}`)
+            let diffMs = saidaTime.getTime() - entrada.getTime()
+            
+            // Subtrair intervalo se houver
+            if (reg.saida_1 && reg.entrada_2 && reg.saida_2) {
+              const inicioIntervalo = new Date(`${reg.data}T${reg.saida_1}`)
+              const fimIntervalo = new Date(`${reg.data}T${reg.entrada_2}`)
+              const intervaloMs = fimIntervalo.getTime() - inicioIntervalo.getTime()
+              diffMs -= intervaloMs
+            }
+            
+            if (diffMs > 0) {
+              const totalMin = Math.floor(diffMs / (1000 * 60))
+              const horas = Math.floor(totalMin / 60)
+              const minutos = totalMin % 60
+              totalHorasDia = `${horas}h${minutos.toString().padStart(2, '0')}`
+            }
+          } else {
+            totalHorasDia = 'Em andamento'
           }
         }
         
+        // Formatar data com dia da semana
+        const dataObj = new Date(reg.data)
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+        const diaSemana = diasSemana[dataObj.getDay()]
+        const dataFormatada = `${diaSemana}, ${dataObj.getDate().toString().padStart(2, '0')}/${(dataObj.getMonth() + 1).toString().padStart(2, '0')}`
+        
         csvLinhas.push([
-          new Date(reg.data).toLocaleDateString('pt-BR'),
+          dataFormatada,
           reg.entrada_1 || '-',
           reg.saida_1 || '-',
           reg.entrada_2 || '-',
           reg.saida_2 || '-',
-          reg.entrada_3 || '-',
-          reg.saida_3 || '-',
           totalHorasDia
         ].join(';'))
       })
+    } else {
+      console.log('⚠️ [CSV] Nenhum registro encontrado para o período')
     }
     
     csvLinhas.push('')

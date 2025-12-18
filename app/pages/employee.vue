@@ -212,9 +212,33 @@ const handleNovaSolicitacao = async (dados: any) => {
 
 // Watch para debug
 watch(registrosPonto, (novos) => {
-  console.log('📊 Registros de ponto atualizados:', novos?.length || 0)
+  console.log('📊 [EMPLOYEE] Registros de ponto atualizados:', novos?.length || 0)
   if (novos && novos.length > 0) {
-    console.log('📅 Primeiro registro:', novos[0])
+    console.log('📅 [EMPLOYEE] Primeiro registro:', novos[0])
+    
+    // Debug detalhado dos registros
+    console.log('🔍 [EMPLOYEE] Todas as datas dos registros:')
+    const todasDatas = novos.map((r: any) => r.data).sort()
+    console.log('  Datas encontradas:', todasDatas)
+    
+    // Verificar se tem registros de novembro
+    const registrosNovembro = novos.filter((r: any) => r.data && r.data.includes('2024-11'))
+    if (registrosNovembro.length > 0) {
+      console.log('⚠️ [EMPLOYEE] PROBLEMA: Registros de novembro encontrados no frontend:')
+      registrosNovembro.forEach((reg: any) => {
+        console.log(`    ${reg.data} - Entrada: ${reg.entrada_1} - Saída: ${reg.saida_2 || reg.saida_1}`)
+      })
+    }
+    
+    // Verificar registros de dezembro
+    const registrosDezembro = novos.filter((r: any) => r.data && r.data.includes('2024-12'))
+    console.log(`✅ [EMPLOYEE] Registros de dezembro: ${registrosDezembro.length}`)
+    if (registrosDezembro.length > 0) {
+      console.log('📅 [EMPLOYEE] Primeiros 3 registros de dezembro:')
+      registrosDezembro.slice(0, 3).forEach((reg: any, idx: number) => {
+        console.log(`    ${idx + 1}. ${reg.data} - ${reg.entrada_1} - ${reg.saida_2 || reg.saida_1}`)
+      })
+    }
   }
 }, { immediate: true })
 

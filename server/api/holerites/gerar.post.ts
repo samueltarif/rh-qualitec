@@ -1,5 +1,10 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { calcularIRRF as calcularIRRFComRedutor } from '../../utils/irrf-lei-15270-2025'
 
+/**
+ * API para gerar holerites
+ * IRRF calculado conforme Lei 15.270/2025 (válida a partir de 01/01/2026)
+ */
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
   
@@ -173,25 +178,10 @@ export default defineEventHandler(async (event) => {
         // Aplicar teto
         inss = Math.min(inss, tetoINSS)
 
-        // Calcular IRRF (progressivo - tabela 2024 OFICIAL)
-        const deducaoPorDependente = 189.59
+        // Calcular IRRF (tabela progressiva + Lei 15.270/2025)
         const dependentes = colab.dependentes || 0 // Usar dependentes do colaborador
-        const baseIRRF = salarioBase - inss - (dependentes * deducaoPorDependente)
-        
-        let irrf = 0
-        if (baseIRRF <= 2259.20) {
-          irrf = 0
-        } else if (baseIRRF <= 2826.65) {
-          irrf = baseIRRF * 0.075 - 169.44
-        } else if (baseIRRF <= 3751.05) {
-          irrf = baseIRRF * 0.15 - 381.44
-        } else if (baseIRRF <= 4664.68) {
-          irrf = baseIRRF * 0.225 - 662.77
-        } else {
-          irrf = baseIRRF * 0.275 - 896.00
-        }
-
-        irrf = Math.max(0, irrf)
+        const resultadoIRRF = calcularIRRFComRedutor(salarioBase, inss, dependentes, salarioBase)
+        const irrf = resultadoIRRF.valor
 
         // Calcular FGTS (8% - pago pela empresa)
         const fgts = salarioBase * 0.08

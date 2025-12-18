@@ -1,8 +1,13 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { 
+  calcularIRRF as calcularIRRFComRedutor, 
+  auditarIRRF,
+  IRRF_CONFIG 
+} from '../../utils/irrf-lei-15270-2025'
 
 /**
  * API para corrigir divergências de IRRF entre módulos
- * Implementa cálculo oficial e gera auditoria
+ * Implementa cálculo oficial conforme Lei 15.270/2025 e gera auditoria
  */
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseClient(event)
@@ -52,72 +57,59 @@ export default defineEventHandler(async (event) => {
     console.log(`🕐 Data/Hora: ${new Date().toLocaleString('pt-BR')}`)
     console.log(`${'='.repeat(80)}\n`)
 
-    // FUNÇÃO OFICIAL DE CÁLCULO DE IRRF (TABELA 2024)
-    const calcularIRRFOficial = (salarioBruto: number, inss: number, dependentes: number): { valor: number, detalhes: any[] } => {
-      const deducaoPorDependente = 189.59
-      const baseCalculo = salarioBruto - inss - (dependentes * deducaoPorDependente)
-      
-      const detalhes: any[] = []
-      
-      // Adicionar detalhes da base de cálculo
-      detalhes.push({
-        tipo: 'base_calculo',
-        descricao: 'Cálculo da Base de IRRF',
-        salario_bruto: salarioBruto,
-        inss_descontado: inss,
-        dependentes: dependentes,
-        deducao_dependentes: dependentes * deducaoPorDependente,
-        base_calculo: baseCalculo,
-      })
-
-      if (baseCalculo <= 2259.20) {
-        detalhes.push({
-          tipo: 'isencao',
-          descricao: 'Isento de IRRF',
-          base_calculo: baseCalculo,
-          limite_isencao: 2259.20,
-          irrf: 0,
-        })
-        return { valor: 0, detalhes }
-      }
-
-      let irrf = 0
-      let faixaAplicada = ''
-      
-      if (baseCalculo <= 2826.65) {
-        irrf = baseCalculo * 0.075 - 169.44
-        faixaAplicada = 'De R$ 2.259,21 até R$ 2.826,65 - 7,5%'
-      } else if (baseCalculo <= 3751.05) {
-        irrf = baseCalculo * 0.15 - 381.44
-        faixaAplicada = 'De R$ 2.826,66 até R$ 3.751,05 - 15%'
-      } else if (baseCalculo <= 4664.68) {
-        irrf = baseCalculo * 0.225 - 662.77
-        faixaAplicada = 'De R$ 3.751,06 até R$ 4.664,68 - 22,5%'
-      } else {
-        irrf = baseCalculo * 0.275 - 896.00
-        faixaAplicada = 'Acima de R$ 4.664,68 - 27,5%'
-      }
-
-      irrf = Math.max(0, irrf)
-
-      detalhes.push({
-        tipo: 'calculo',
-        descricao: 'Cálculo do IRRF',
-        faixa_aplicada: faixaAplicada,
-        base_calculo: baseCalculo,
-        irrf_calculado: irrf,
-        irrf_final: parseFloat(irrf.toFixed(2)),
-      })
-
-      return {
-        valor: parseFloat(irrf.toFixed(2)),
-        detalhes,
-      }
+    // Usar função central de cálculo de IRRF (Lei 15.270/2025)
+    const rendimentosTributaveis = parseFloat(salario_bruto) // Pode ser expandido para incluir outras verbas
+    const resultadoIRRF = calcularIRRFComRedutor(
+      parseFloat(salario_bruto), 
+      parseFloat(inss), 
+      parseInt(dependentes),
+      rendimentosTributaveis
+    )
+    
+    const valorCorreto = resultadoIRRF.valor
+    const detalhesCalculo = resultadoIRRF.detalhes
+    
+    // Converter detalhes para formato de array para compatibilidade
+    const irrfOficial = {
+      valor: valorCorreto,
+      detalhes: [
+        {
+          tipo: 'base_calculo',
+          descricao: 'Cálculo da Base de IRRF',
+          salario_bruto: detalhesCalculo.salarioBruto,
+          inss_descontado: detalhesCalculo.inss,
+          dependentes: detalhesCalculo.dependentes,
+          deducao_dependentes: detalhesCalculo.deducaoDependentes,
+          base_calculo: detalhesCalculo.baseCalculo,
+        },
+        {
+          tipo: 'calculo_tabela',
+          descricao: 'IRRF pela Tabela Progressiva',
+          faixa_aplicada: detalhesCalculo.faixaAplicada,
+          aliquota: detalhesCalculo.aliquota,
+          parcela_a_deduzir: detalhesCalculo.parcelaADeduzir,
+          irrf_tabela: detalhesCalculo.irrfTabela,
+        },
+        {
+          tipo: 'redutor_lei_15270',
+          descricao: 'Redutor Lei 15.270/2025',
+          lei_aplicada: detalhesCalculo.lei15270Aplicada,
+          rendimentos_tributaveis: detalhesCalculo.rendimentosTributaveis,
+          redutor_calculado: detalhesCalculo.redutorCalculado,
+          redutor_aplicado: detalhesCalculo.redutorAplicado,
+          limite_isencao_total: IRRF_CONFIG.lei15270.limiteIsencaoTotal,
+          limite_faixa_transicao: IRRF_CONFIG.lei15270.limiteFaixaTransicao,
+        },
+        {
+          tipo: 'resultado_final',
+          descricao: 'IRRF Final',
+          irrf_antes_redutor: detalhesCalculo.irrfTabela,
+          redutor_aplicado: detalhesCalculo.redutorAplicado,
+          irrf_final: detalhesCalculo.irrfFinal,
+          observacoes: detalhesCalculo.observacoes,
+        }
+      ]
     }
-
-    // Calcular IRRF oficial
-    const irrfOficial = calcularIRRFOficial(parseFloat(salario_bruto), parseFloat(inss), parseInt(dependentes))
-    const valorCorreto = irrfOficial.valor
 
     console.log('📊 CÁLCULO OFICIAL DO IRRF:')
     console.log(`   💰 Valor Correto: R$ ${valorCorreto.toFixed(2)}`)

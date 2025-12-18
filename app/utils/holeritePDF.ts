@@ -27,7 +27,11 @@ interface HoleriteData {
   salario_liquido: number
   fgts?: number
   tipo?: string
+  parcela_13?: string
+  meses_trabalhados?: number
   observacoes?: string
+  // Campos adicionais que podem existir
+  [key: string]: any
 }
 
 interface EmpresaData {
@@ -43,6 +47,12 @@ interface EmpresaData {
  */
 export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: EmpresaData) {
   const doc = new jsPDF()
+  
+  // Verificar se os dados necessários estão presentes
+  if (!holerite.tipo) {
+    console.warn('Tipo do holerite não definido, assumindo "mensal"')
+    holerite.tipo = 'mensal'
+  }
   
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
@@ -76,8 +86,26 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
   
-  const tipoFolha = holerite.tipo === 'decimo_terceiro' ? '13º Salário' : 
-                    holerite.tipo === 'adiantamento' ? 'Adiantamento' : 'Folha Mensal'
+  // Determinar o tipo de folha baseado no campo 'tipo' do holerite
+  let tipoFolha = 'Folha Mensal'
+  let periodoTexto = `${meses[holerite.mes - 1]} de ${holerite.ano}`
+  
+  // Verificar se é 13º salário
+  if (holerite.tipo === 'decimo_terceiro') {
+    const parcela13 = (holerite as any).parcela_13
+    if (parcela13 === '2') {
+      tipoFolha = '13º Salário'
+      periodoTexto = `Dezembro de ${holerite.ano}`
+    } else if (parcela13 === '1') {
+      tipoFolha = '13º Salário - 1ª Parcela'
+      periodoTexto = `Novembro de ${holerite.ano}`
+    } else {
+      tipoFolha = '13º Salário'
+      periodoTexto = `Dezembro de ${holerite.ano}`
+    }
+  } else if (holerite.tipo === 'adiantamento') {
+    tipoFolha = 'Adiantamento'
+  }
   
   doc.text(`CNPJ: ${formatCNPJ(empresa?.cnpj || '')}`, 10, yPos)
   doc.text('CC: GERAL', 105, yPos, { align: 'center' })
@@ -85,7 +113,7 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   
   yPos += 4
   doc.text('Mensalista', 105, yPos, { align: 'center' })
-  doc.text(`${meses[holerite.mes - 1]} de ${holerite.ano}`, 200, yPos, { align: 'right' })
+  doc.text(periodoTexto, 200, yPos, { align: 'right' })
   
   yPos += 8
 
@@ -119,8 +147,35 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   const linhasTabela: any[] = []
   
   // PROVENTOS
-  if (holerite.salario_base > 0) {
-    linhasTabela.push(['8781', 'DIAS NORMAIS', '30,00', formatCurrency(holerite.salario_base), ''])
+  if (holerite.tipo === 'decimo_terceiro') {
+    // ✅ REGRA CORRETA PARA 13º SALÁRIO
+    const valorCorreto = holerite.total_proventos || 0
+    const mesesTrabalhados = holerite.meses_trabalhados || 12
+    const parcela13 = (holerite as any).parcela_13
+    
+    if (valorCorreto > 0) {
+      // Determinar descrição e referência corretas
+      let descricao = '13º SALÁRIO'
+      let referencia = '12/12' // Padrão para direito integral
+      
+      if (parcela13 === '2') {
+        descricao = '13º SALÁRIO - 2ª PARCELA'
+      } else if (parcela13 === '1') {
+        descricao = '13º SALÁRIO - 1ª PARCELA'
+      }
+      
+      // Calcular avos corretos (1/12 por mês trabalhado)
+      if (mesesTrabalhados < 12) {
+        referencia = `${mesesTrabalhados}/12`
+      }
+      
+      linhasTabela.push(['8781', descricao, referencia, formatCurrency(valorCorreto), ''])
+    }
+  } else {
+    // Para holerites mensais, usar salario_base normalmente
+    if (holerite.salario_base > 0) {
+      linhasTabela.push(['8781', 'DIAS NORMAIS', '30,00', formatCurrency(holerite.salario_base), ''])
+    }
   }
   
   if (holerite.valor_horas_extras_50 && holerite.valor_horas_extras_50 > 0) {
@@ -287,43 +342,11 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
   
-  // Calcular totais corretos
-  let totalProventos = holerite.salario_base || 0
-  totalProventos += holerite.valor_horas_extras_50 || 0
-  totalProventos += holerite.valor_horas_extras_100 || 0
-  totalProventos += holerite.bonus || 0
-  totalProventos += holerite.comissoes || 0
-  totalProventos += holerite.adicional_insalubridade || 0
-  totalProventos += holerite.adicional_periculosidade || 0
-  totalProventos += holerite.adicional_noturno || 0
-  totalProventos += holerite.outros_proventos || 0
-  
-  let totalDescontos = 0
-  totalDescontos += holerite.inss || 0
-  totalDescontos += holerite.irrf || 0
-  totalDescontos += holerite.adiantamento || 0
-  totalDescontos += holerite.emprestimos || 0
-  totalDescontos += holerite.faltas || 0
-  totalDescontos += holerite.atrasos || 0
-  totalDescontos += holerite.plano_saude || 0
-  totalDescontos += holerite.plano_odontologico || 0
-  totalDescontos += holerite.seguro_vida || 0
-  totalDescontos += holerite.auxilio_creche || 0
-  totalDescontos += holerite.auxilio_educacao || 0
-  totalDescontos += holerite.auxilio_combustivel || 0
-  totalDescontos += holerite.outros_beneficios || 0
-  totalDescontos += holerite.outros_descontos || 0
-  
-  // Adicionar itens personalizados aos totais
-  itensPersonalizados.forEach((item: any) => {
-    if (item.tipo === 'provento') {
-      totalProventos += item.valor || 0
-    } else {
-      totalDescontos += item.valor || 0
-    }
-  })
-  
-  const salarioLiquido = totalProventos - totalDescontos
+  // USAR OS VALORES JÁ CALCULADOS DO BANCO DE DADOS
+  // Isso garante que o PDF mostre exatamente os mesmos valores da visualização
+  const totalProventos = holerite.total_proventos || 0
+  const totalDescontos = holerite.total_descontos || 0
+  const salarioLiquido = holerite.salario_liquido || 0
   
   // Linha 1: Total Vencimentos e Total Descontos
   doc.text('Total de Vencimentos', 126, yPos, { align: 'right' })
@@ -355,17 +378,37 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   yPos += 8
 
   // ===== RODAPÉ TÉCNICO =====
-  const baseINSS = holerite.total_proventos
-  const baseFGTS = holerite.total_proventos
+  let salarioBaseRodape = holerite.salario_base
+  let baseINSS = holerite.total_proventos
+  let baseFGTS = holerite.total_proventos
+  let baseIRRF = 0
+  let faixaIRRF = holerite.irrf || 0
+  
+  if (holerite.tipo === 'decimo_terceiro') {
+    // ✅ REGRAS CORRETAS PARA 13º SALÁRIO
+    // Salário Base = valor bruto do 13º (antes dos descontos)
+    salarioBaseRodape = holerite.total_proventos
+    
+    // Base INSS = valor total do 13º (INSS incide sobre valor total)
+    baseINSS = holerite.total_proventos
+    
+    // Base FGTS = valor total do 13º (FGTS calculado sobre valor total)
+    baseFGTS = holerite.total_proventos
+    
+    // Base IRRF = 13º bruto - INSS do 13º (conforme legislação)
+    baseIRRF = holerite.total_proventos - (holerite.inss || 0)
+  } else {
+    // Para salário mensal
+    baseIRRF = baseINSS - (holerite.inss || 0)
+  }
+  
   const fgts = holerite.fgts || (baseFGTS * 0.08)
-  const baseIRRF = baseINSS - (holerite.inss || 0)
-  const faixaIRRF = holerite.irrf || 0
 
   autoTable(doc, {
     startY: yPos,
     head: [['Salário Base', 'Sal. Contr. INSS', 'Base Cálc. FGTS', 'F.G.T.S do Mês', 'Base Cálc. IRRF', 'Faixa IRRF']],
     body: [[
-      formatCurrency(holerite.salario_base),
+      formatCurrency(salarioBaseRodape),
       formatCurrency(baseINSS),
       formatCurrency(baseFGTS),
       formatCurrency(fgts),
@@ -396,7 +439,24 @@ export function downloadHoleritePDFOficial(holerite: HoleriteData, empresa?: Emp
   const doc = gerarHoleritePDFOficial(holerite, empresa)
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-  const nomeArquivo = `Holerite_${holerite.nome_colaborador.replace(/\s+/g, '_')}_${meses[holerite.mes - 1]}_${holerite.ano}.pdf`
+  
+  // Determinar o nome do arquivo baseado no tipo
+  let nomeArquivo = ''
+  if (holerite.tipo === 'decimo_terceiro') {
+    const parcela13 = (holerite as any).parcela_13
+    if (parcela13 === '2') {
+      nomeArquivo = `13_Salario_2Parcela_${holerite.nome_colaborador.replace(/\s+/g, '_')}_Dezembro_${holerite.ano}.pdf`
+    } else if (parcela13 === '1') {
+      nomeArquivo = `13_Salario_1Parcela_${holerite.nome_colaborador.replace(/\s+/g, '_')}_Novembro_${holerite.ano}.pdf`
+    } else {
+      nomeArquivo = `13_Salario_${holerite.nome_colaborador.replace(/\s+/g, '_')}_Dezembro_${holerite.ano}.pdf`
+    }
+  } else if (holerite.tipo === 'adiantamento') {
+    nomeArquivo = `Adiantamento_${holerite.nome_colaborador.replace(/\s+/g, '_')}_${meses[holerite.mes - 1]}_${holerite.ano}.pdf`
+  } else {
+    nomeArquivo = `Holerite_${holerite.nome_colaborador.replace(/\s+/g, '_')}_${meses[holerite.mes - 1]}_${holerite.ano}.pdf`
+  }
+  
   doc.save(nomeArquivo)
 }
 

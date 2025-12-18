@@ -26,24 +26,23 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Buscar assinatura digital do período atual
-    const mesAtual = new Date().getMonth() + 1
-    const anoAtual = new Date().getFullYear()
+    // Buscar assinatura digital do período especificado ou atual
+    const mesEspecificado = query.mes ? parseInt(query.mes as string) : new Date().getMonth() + 1
+    const anoEspecificado = query.ano ? parseInt(query.ano as string) : new Date().getFullYear()
     
     const { data: assinatura } = await supabaseAdmin
       .from('assinaturas_ponto')
       .select('*')
       .eq('colaborador_id', colaborador.id)
-      .eq('mes', mesAtual)
-      .eq('ano', anoAtual)
+      .eq('mes', mesEspecificado)
+      .eq('ano', anoEspecificado)
       .single()
 
-    console.log('📋 Gerando relatório para colaborador:', colaborador.nome)
+    console.log(`📋 Gerando relatório para: ${colaborador.nome} - ${mesEspecificado}/${anoEspecificado}`)
 
-    // Buscar registros dos últimos 30 dias
-    const dataFim = new Date()
-    const dataInicio = new Date()
-    dataInicio.setDate(dataFim.getDate() - 30)
+    // ✅ BUSCAR APENAS OS REGISTROS DO MÊS ESPECÍFICO
+    const dataInicio = new Date(anoEspecificado, mesEspecificado - 1, 1).toISOString().split('T')[0]
+    const dataFim = new Date(anoEspecificado, mesEspecificado, 0).toISOString().split('T')[0]
 
     const { data: registros } = await supabaseAdmin
       .from('registros_ponto')
@@ -53,46 +52,63 @@ export default defineEventHandler(async (event) => {
       .lte('data', dataFim.toISOString().split('T')[0])
       .order('data', { ascending: true })
 
-    // Processar registros para o HTML
+    // ✅ PROCESSAR APENAS REGISTROS REAIS (não gerar dias fictícios)
     let totalDias = 0
     let totalMinutos = 0
 
+    console.log(`📋 Registros encontrados na tabela: ${registros?.length || 0}`)
+
+    // ✅ USAR APENAS REGISTROS QUE EXISTEM NA TABELA (NADA MAIS)
     const dadosTabela = registros?.map(registro => {
       const entrada = registro.entrada_1 || '-'
       const saida = registro.saida_2 || registro.saida_1 || '-'
       
-      // Calcular intervalo
+      // Calcular intervalo apenas se houver saída e entrada de intervalo
       let intervalo = '-'
       if (registro.saida_1 && registro.entrada_2) {
         const inicio = new Date(`2000-01-01T${registro.saida_1}`)
         const fim = new Date(`2000-01-01T${registro.entrada_2}`)
         const diffMs = fim.getTime() - inicio.getTime()
-        const diffMin = Math.floor(diffMs / (1000 * 60))
-        const horas = Math.floor(diffMin / 60)
-        const minutos = diffMin % 60
-        intervalo = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`
+        if (diffMs > 0) {
+          const diffMin = Math.floor(diffMs / (1000 * 60))
+          const horas = Math.floor(diffMin / 60)
+          const minutos = diffMin % 60
+          intervalo = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`
+        }
       }
       
       // Calcular horas trabalhadas no dia
       let horasDia = '-'
+      let minutosTrabalhadosDia = 0
+      
       if (entrada !== '-' && saida !== '-') {
         const entradaTime = new Date(`2000-01-01T${entrada}`)
         const saidaTime = new Date(`2000-01-01T${saida}`)
         let diffMs = saidaTime.getTime() - entradaTime.getTime()
         
         // Subtrair intervalo se houver
-        if (intervalo !== '-') {
-          const [h, m] = intervalo.split(':').map(Number)
-          diffMs -= (h * 60 + m) * 60 * 1000
+        if (registro.saida_1 && registro.entrada_2) {
+          const inicioIntervalo = new Date(`2000-01-01T${registro.saida_1}`)
+          const fimIntervalo = new Date(`2000-01-01T${registro.entrada_2}`)
+          const intervaloMs = fimIntervalo.getTime() - inicioIntervalo.getTime()
+          if (intervaloMs > 0) {
+            diffMs -= intervaloMs
+          }
         }
         
-        const diffMin = Math.floor(diffMs / (1000 * 60))
-        totalMinutos += diffMin
-        totalDias++
-        
-        const horas = Math.floor(diffMin / 60)
-        const minutos = diffMin % 60
-        horasDia = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`
+        if (diffMs > 0) {
+          minutosTrabalhadosDia = Math.floor(diffMs / (1000 * 60))
+          totalMinutos += minutosTrabalhadosDia
+          
+          // Contar como dia trabalhado se trabalhou pelo menos 1 hora
+          if (minutosTrabalhadosDia >= 60) {
+            totalDias++
+          }
+          
+          const horas = Math.floor(minutosTrabalhadosDia / 60)
+          const minutos = minutosTrabalhadosDia % 60
+          horasDia = `${horas}h${minutos.toString().padStart(2, '0')}`
+        }
       }
       
       return {
@@ -100,9 +116,10 @@ export default defineEventHandler(async (event) => {
         entrada,
         intervalo,
         saida,
-        horas: horasDia
+        horas: horasDia,
+        valido: minutosTrabalhadosDia > 0
       }
-    }) || []
+    }).filter(item => item.valido) || [] // Mostrar apenas dias com registros válidos
 
     // Calcular total de horas
     const totalHoras = Math.floor(totalMinutos / 60)

@@ -1,6 +1,10 @@
+import { calcularIRRF as calcularIRRFComRedutor } from '../../utils/irrf-lei-15270-2025'
+
 /**
  * API para calcular folha de pagamento
  * Recebe mês e ano e retorna cálculos detalhados
+ * 
+ * IRRF calculado conforme Lei 15.270/2025 (válida a partir de 01/01/2026)
  */
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
@@ -132,24 +136,10 @@ export default defineEventHandler(async (event) => {
       // Aplicar teto
       inss = Math.min(inss, tetoINSS)
 
-      // IRRF (progressivo - tabela 2024 OFICIAL)
-      const deducaoPorDependente = 189.59
+      // IRRF (progressivo - tabela 2024 + Lei 15.270/2025)
       const dependentes = 0 // Assumir 0 dependentes se não informado
-      const baseIRRF = salarioBruto - inss - (dependentes * deducaoPorDependente)
-      
-      let irrf = 0
-      if (baseIRRF <= 2259.20) {
-        irrf = 0
-      } else if (baseIRRF <= 2826.65) {
-        irrf = baseIRRF * 0.075 - 169.44
-      } else if (baseIRRF <= 3751.05) {
-        irrf = baseIRRF * 0.15 - 381.44
-      } else if (baseIRRF <= 4664.68) {
-        irrf = baseIRRF * 0.225 - 662.77
-      } else {
-        irrf = baseIRRF * 0.275 - 896.00
-      }
-      irrf = Math.max(0, irrf)
+      const resultadoIRRF = calcularIRRFComRedutor(salarioBruto, inss, dependentes, salarioBruto)
+      const irrf = resultadoIRRF.valor
 
       // FGTS (8% - pago pelo empregador, não desconta do salário)
       const fgts = salarioBruto * 0.08

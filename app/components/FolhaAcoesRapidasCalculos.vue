@@ -91,7 +91,7 @@
               size="sm"
               icon-left="heroicons:calculator"
               class="w-full"
-              @click="$emit('abrir-modal-rescisao')"
+              @click="abrirModalRescisao"
             >
               Simular Rescisão
             </UIButton>
@@ -109,14 +109,31 @@
         </span>
       </p>
     </div>
+
+    <!-- Modal Simulador de Rescisão -->
+    <ModalSimuladorRescisao
+      :show="mostrarModalRescisao"
+      @close="mostrarModalRescisao = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+
+// Estado
+const mostrarModalRescisao = ref(false)
+
+// Função para abrir modal
+const abrirModalRescisao = () => {
+  console.log('Abrindo modal de rescisão...')
+  mostrarModalRescisao.value = true
+  console.log('mostrarModalRescisao:', mostrarModalRescisao.value)
+}
+
 // Emits para comunicação com o componente pai
 defineEmits<{
   'abrir-modal-adiantamento': []
   'abrir-modal-13-salario': []
-  'abrir-modal-rescisao': []
 }>()
 </script>

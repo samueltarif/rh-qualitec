@@ -468,6 +468,11 @@ const calcularSalarioLiquido = () => {
 
 const baixarPDF = async () => {
   try {
+    // Verificar se os dados necessários estão presentes
+    if (!props.holerite.tipo) {
+      console.warn('Tipo do holerite não definido no modal')
+    }
+    
     const empresaData = empresa.value ? {
       nome: empresa.value.nome || 'QUALITEC INSTRUMENTOS LTDA',
       cnpj: empresa.value.cnpj || '09.117.117/0001-24',

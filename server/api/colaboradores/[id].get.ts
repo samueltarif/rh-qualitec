@@ -12,13 +12,14 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event)
 
-  // Primeiro tentar buscar com relacionamentos
+  // Buscar colaborador com relacionamentos
   let { data, error } = await supabase
     .from('colaboradores')
     .select(`
       *,
-      cargo_rel:cargos(nome),
-      departamento_rel:departamentos(nome)
+      cargo:cargos(id, nome, nivel),
+      departamento:departamentos!colaboradores_departamento_id_fkey(id, nome),
+      jornada:jornadas_trabalho(id, nome, tipo)
     `)
     .eq('id', id)
     .single()
@@ -48,16 +49,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Formatar resposta para incluir nome do cargo e departamento
-  // Tentar pegar do relacionamento primeiro, senão usar o campo direto
+  // Garantir que os campos de benefícios existam
   const colaborador = data as any
-  const cargoNome = colaborador.cargo_rel?.nome || colaborador.cargo || '-'
-  const departamentoNome = colaborador.departamento_rel?.nome || colaborador.departamento || '-'
-
+  
   return {
     ...colaborador,
-    cargo_nome: cargoNome,
-    departamento_nome: departamentoNome,
     // Garantir que os campos de benefícios existam
     recebe_vt: colaborador.recebe_vt || false,
     valor_vt: colaborador.valor_vt || 0,

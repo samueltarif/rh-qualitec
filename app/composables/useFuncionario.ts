@@ -152,6 +152,9 @@ export const useFuncionario = () => {
       // Forçar não cachear
       params.append('_t', Date.now().toString())
       
+      console.log('🔍 [FETCH PONTO] Buscando registros para:', { mes, ano })
+      console.log('🔍 [FETCH PONTO] URL:', `/api/funcionario/ponto?${params}`)
+      
       const data = await $fetch<RegistroPonto[]>(`/api/funcionario/ponto?${params}`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -160,6 +163,24 @@ export const useFuncionario = () => {
       })
       
       console.log('🔄 [FETCH PONTO] Registros recebidos:', data?.length || 0)
+      
+      // Debug detalhado dos dados recebidos
+      if (data && data.length > 0) {
+        console.log('📊 [FETCH PONTO] Primeiros 3 registros recebidos:')
+        data.slice(0, 3).forEach((reg: any, idx: number) => {
+          console.log(`  ${idx + 1}. Data: ${reg.data} | Entrada: ${reg.entrada_1} | Saída: ${reg.saida_2 || reg.saida_1}`)
+        })
+        
+        // Verificar se tem registros de novembro
+        const registrosNovembro = data.filter((r: any) => r.data && r.data.includes('2024-11'))
+        if (registrosNovembro.length > 0) {
+          console.log('⚠️ [FETCH PONTO] PROBLEMA: API retornou registros de novembro:')
+          registrosNovembro.forEach((reg: any) => {
+            console.log(`    ${reg.data} - ${reg.entrada_1} - ${reg.saida_2 || reg.saida_1}`)
+          })
+        }
+      }
+      
       registrosPonto.value = data
     } catch (e: any) {
       console.error('Erro ao buscar ponto:', e)

@@ -243,22 +243,47 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
-  if (!form.value.nome || !form.value.nivel) { alert('Preencha todos os campos obrigatórios'); return }
+  const toast = useToast()
+  
+  if (!form.value.nome || !form.value.nivel) { 
+    toast.warning('Campos obrigatórios', 'Preencha todos os campos obrigatórios')
+    return 
+  }
+  
   saving.value = true
   try {
     const data = { nome: form.value.nome, nivel: form.value.nivel as 'operacional' | 'gestao', descricao: form.value.descricao || undefined, departamento_id: form.value.departamento_id || undefined }
     const result = isEditing.value && editingId.value ? await updateCargo(editingId.value, data) : await createCargo(data)
-    if (result.success) { alert(isEditing.value ? 'Cargo atualizado!' : 'Cargo criado!'); closeModal() }
-    else alert(`Erro: ${result.error}`)
+    
+    if (result.success) { 
+      toast.success(
+        isEditing.value ? 'Cargo atualizado!' : 'Cargo criado!',
+        isEditing.value 
+          ? `O cargo "${form.value.nome}" foi atualizado com sucesso.`
+          : `O cargo "${form.value.nome}" foi criado com sucesso.`
+      )
+      closeModal() 
+    } else {
+      toast.error('Erro ao salvar cargo', result.error || 'Ocorreu um erro ao processar a solicitação.')
+    }
   } finally { saving.value = false }
 }
 
 const handleToggleStatus = async (cargo: any) => {
+  const toast = useToast()
   const action = cargo.ativo ? 'desativar' : 'ativar'
+  
   if (confirm(`Deseja ${action} o cargo "${cargo.nome}"?`)) {
     const result = await toggleCargoStatus(cargo.id, !cargo.ativo)
-    if (result.success) alert(`Cargo ${action}do!`)
-    else alert(`Erro: ${result.error}`)
+    
+    if (result.success) {
+      toast.success(
+        `Cargo ${action}do!`,
+        `O cargo "${cargo.nome}" foi ${action}do com sucesso.`
+      )
+    } else {
+      toast.error(`Erro ao ${action} cargo`, result.error || 'Não foi possível alterar o status do cargo.')
+    }
   }
 }
 
@@ -278,28 +303,45 @@ const closeGestoresModal = () => {
 }
 
 const handleAddGestor = async (colaboradorId: string) => {
+  const toast = useToast()
+  
   if (!selectedCargo.value) return
   savingGestor.value = true
   const result = await addGestor(selectedCargo.value.id, colaboradorId)
+  
   if (result.success) {
-    alert('Gestor adicionado!')
+    const colaborador = colaboradoresDisponiveis.value.find(c => c.id === colaboradorId)
+    toast.success(
+      'Gestor adicionado!',
+      `${colaborador?.nome || 'Colaborador'} foi adicionado como gestor do cargo "${selectedCargo.value.nome}".`
+    )
     const reloadResult = await fetchColaboradoresDisponiveis(selectedCargo.value.id)
     if (reloadResult.success) colaboradoresDisponiveis.value = reloadResult.data || []
     selectedCargo.value = cargos.value.find(c => c.id === selectedCargo.value.id)
-  } else alert(`Erro: ${result.error}`)
+  } else {
+    toast.error('Erro ao adicionar gestor', result.error || 'Não foi possível adicionar o gestor.')
+  }
   savingGestor.value = false
 }
 
 const handleRemoveGestor = async (gestorId: string) => {
+  const toast = useToast()
+  
   if (!confirm('Deseja remover este gestor?')) return
   const result = await removeGestor(gestorId)
+  
   if (result.success) {
-    alert('Gestor removido!')
+    toast.success(
+      'Gestor removido!',
+      'O gestor foi removido do cargo com sucesso.'
+    )
     if (selectedCargo.value) {
       const reloadResult = await fetchColaboradoresDisponiveis(selectedCargo.value.id)
       if (reloadResult.success) colaboradoresDisponiveis.value = reloadResult.data || []
       selectedCargo.value = cargos.value.find(c => c.id === selectedCargo.value.id)
     }
-  } else alert(`Erro: ${result.error}`)
+  } else {
+    toast.error('Erro ao remover gestor', result.error || 'Não foi possível remover o gestor.')
+  }
 }
 </script>

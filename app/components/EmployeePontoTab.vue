@@ -343,6 +343,24 @@ const dataLimiteVisualizacao = computed(() => {
 })
 
 const resumo = computed(() => {
+  console.log('🔍 [PONTO TAB] Calculando resumo para', props.registros.length, 'registros')
+  
+  // Debug dos registros recebidos
+  if (props.registros.length > 0) {
+    console.log('📅 [PONTO TAB] Datas dos registros:')
+    const datasRegistros = props.registros.map(r => r.data).sort()
+    console.log('  Datas:', datasRegistros)
+    
+    // Verificar se tem registros de novembro
+    const registrosNovembro = props.registros.filter(r => r.data && r.data.includes('2024-11'))
+    if (registrosNovembro.length > 0) {
+      console.log('⚠️ [PONTO TAB] PROBLEMA: Registros de novembro no componente:')
+      registrosNovembro.forEach(reg => {
+        console.log(`    ${reg.data} - ${reg.entrada_1} - ${reg.saida_2 || reg.saida_1}`)
+      })
+    }
+  }
+  
   const faltas = props.registros.filter(r => r.status === 'Falta').length
   
   // Calcular totais usando tempo real para registros em andamento
@@ -540,16 +558,16 @@ const baixarPDF = async () => {
   baixandoPDF.value = true
   
   try {
-    console.log('🔍 Testando API simples primeiro...')
+    console.log('🔍 Gerando PDF para período:', { mes: mesSelecionado.value, ano: anoSelecionado.value })
     
-    // Testar API simples primeiro
-    const teste = await $fetch('/api/funcionario/ponto/test-simple')
-    console.log('✅ API simples funcionou:', teste)
-    
-    // Agora testar a nova API de PDF
-    console.log('🔍 Testando nova API de PDF...')
-    const dados = await $fetch('/api/funcionario/ponto/download-pdf-new')
-    console.log('✅ Nova API funcionou:', dados)
+    // Buscar dados do período selecionado
+    const dados = await $fetch('/api/funcionario/ponto/download-pdf-new', {
+      params: {
+        mes: mesSelecionado.value,
+        ano: anoSelecionado.value
+      }
+    })
+    console.log('✅ Dados do PDF recebidos:', dados)
     
     if (!dados.success) {
       throw new Error('Erro ao buscar dados do relatório')

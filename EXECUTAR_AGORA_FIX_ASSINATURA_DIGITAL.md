@@ -1,138 +1,61 @@
-# 🚨 CORREÇÃO IMEDIATA - ASSINATURA DIGITAL
+# 🚨 EXECUTAR AGORA - Fix Assinatura Digital
 
-## PROBLEMA IDENTIFICADO
-- APIs retornando 404
-- Tabela `assinaturas_ponto` existe mas falta coluna `assinatura_digital`
-- Problemas de TypeScript nas APIs
+## ❌ Problema Crítico
+Colaboradores não conseguem assinar ponto digitalmente devido a erro 404:
+- API não encontra colaborador
+- Vínculos entre `app_users` e `colaboradores` estão quebrados
 
-## SOLUÇÃO EM 3 PASSOS
+## ✅ Solução Imediata
 
-### PASSO 1: EXECUTAR SQL NO SUPABASE
-Copie e cole este SQL no Supabase SQL Editor:
+### 1. Abra o Supabase Dashboard
+- Vá para: https://supabase.com/dashboard
+- Acesse o projeto Qualitec
+- Vá em SQL Editor
+
+### 2. Execute este SQL (COPIE E COLE):
 
 ```sql
--- Adicionar coluna assinatura_digital se não existir
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'assinaturas_ponto' 
-        AND column_name = 'assinatura_digital'
-    ) THEN
-        ALTER TABLE assinaturas_ponto 
-        ADD COLUMN assinatura_digital TEXT;
-        RAISE NOTICE '✅ Coluna assinatura_digital adicionada';
-    END IF;
-    
-    -- Adicionar outras colunas necessárias
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'assinaturas_ponto' 
-        AND column_name = 'arquivo_csv'
-    ) THEN
-        ALTER TABLE assinaturas_ponto 
-        ADD COLUMN arquivo_csv TEXT;
-    END IF;
-    
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'assinaturas_ponto' 
-        AND column_name = 'ip_assinatura'
-    ) THEN
-        ALTER TABLE assinaturas_ponto 
-        ADD COLUMN ip_assinatura VARCHAR(45);
-    END IF;
-    
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'assinaturas_ponto' 
-        AND column_name = 'data_assinatura'
-    ) THEN
-        ALTER TABLE assinaturas_ponto 
-        ADD COLUMN data_assinatura TIMESTAMPTZ DEFAULT NOW();
-    END IF;
-END $$;
+-- Corrigir vínculos para assinatura digital
+UPDATE colaboradores 
+SET auth_uid = app_users.auth_uid
+FROM app_users 
+WHERE colaboradores.email_corporativo = app_users.email 
+  AND colaboradores.auth_uid IS NULL
+  AND app_users.auth_uid IS NOT NULL;
 
--- Habilitar RLS
-ALTER TABLE assinaturas_ponto ENABLE ROW LEVEL SECURITY;
+-- Vincular por nome se email não bateu
+UPDATE colaboradores 
+SET auth_uid = app_users.auth_uid
+FROM app_users 
+WHERE UPPER(colaboradores.nome) = UPPER(app_users.nome)
+  AND colaboradores.auth_uid IS NULL
+  AND app_users.auth_uid IS NOT NULL;
 
--- Criar políticas
-DROP POLICY IF EXISTS "Funcionários podem ver suas próprias assinaturas" ON assinaturas_ponto;
-CREATE POLICY "Funcionários podem ver suas próprias assinaturas" ON assinaturas_ponto
-    FOR SELECT USING (
-        colaborador_id IN (
-            SELECT id FROM colaboradores 
-            WHERE auth_uid = auth.uid()
-        )
-    );
-
-DROP POLICY IF EXISTS "Funcionários podem inserir suas próprias assinaturas" ON assinaturas_ponto;
-CREATE POLICY "Funcionários podem inserir suas próprias assinaturas" ON assinaturas_ponto
-    FOR INSERT WITH CHECK (
-        colaborador_id IN (
-            SELECT id FROM colaboradores 
-            WHERE auth_uid = auth.uid()
-        )
-    );
-
-DROP POLICY IF EXISTS "Funcionários podem atualizar suas próprias assinaturas" ON assinaturas_ponto;
-CREATE POLICY "Funcionários podem atualizar suas próprias assinaturas" ON assinaturas_ponto
-    FOR UPDATE USING (
-        colaborador_id IN (
-            SELECT id FROM colaboradores 
-            WHERE auth_uid = auth.uid()
-        )
-    );
-
-DROP POLICY IF EXISTS "Administradores podem ver todas as assinaturas" ON assinaturas_ponto;
-CREATE POLICY "Administradores podem ver todas as assinaturas" ON assinaturas_ponto
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM app_users 
-            WHERE auth_uid = auth.uid() 
-            AND role = 'admin'
-        )
-    );
+-- Verificar resultado
+SELECT 
+  c.nome,
+  c.email_corporativo,
+  CASE 
+    WHEN c.auth_uid IS NOT NULL THEN '✅ VINCULADO'
+    ELSE '❌ SEM VÍNCULO'
+  END as status
+FROM colaboradores c
+WHERE c.status = 'Ativo'
+ORDER BY c.nome;
 ```
 
-### PASSO 2: REINICIAR SERVIDOR
-```bash
-# Parar servidor (Ctrl+C)
-# Iniciar novamente
-npm run dev
-```
+### 3. Resultado Esperado
+Todos os colaboradores ativos devem aparecer como "✅ VINCULADO"
 
-### PASSO 3: TESTAR IMEDIATAMENTE
+## 🧪 Teste Imediato
+1. Faça login como funcionário (ex: CORINTHIANS)
+2. Vá para a aba "Ponto"
+3. Clique em "Assinar Digitalmente"
+4. ✅ Deve funcionar sem erro 404
 
-#### Teste 1: API de Consulta
-```
-GET http://localhost:3001/api/funcionario/ponto/assinatura?mes=12&ano=2025
-```
-**Esperado:** Status 200 (mesmo que retorne null)
+## 📋 Status
+- ✅ API corrigida (busca mais robusta)
+- ⏳ Aguardando execução do SQL
+- ⏳ Teste pendente
 
-#### Teste 2: API de Criação
-```
-POST http://localhost:3001/api/funcionario/ponto/assinar-digital
-Content-Type: application/json
-
-{
-  "mes": 12,
-  "ano": 2025,
-  "assinaturaDigital": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-  "observacoes": "Teste"
-}
-```
-**Esperado:** Status 200 com success: true
-
-## RESULTADO FINAL
-✅ APIs funcionando sem 404
-✅ Assinatura digital operacional
-✅ Dados salvos corretamente no banco
-
-## SE AINDA DER ERRO
-1. Verifique se o SQL foi executado com sucesso
-2. Confirme que as colunas foram criadas
-3. Reinicie o servidor Nuxt
-4. Teste novamente
-
-**IMPORTANTE:** Execute o SQL primeiro, depois reinicie o servidor!
+**EXECUTE O SQL AGORA PARA RESOLVER O PROBLEMA!**

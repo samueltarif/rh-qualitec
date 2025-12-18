@@ -390,6 +390,8 @@ const fecharModal = () => {
 }
 
 const salvar = async () => {
+  const toast = useToast()
+  
   saving.value = true
   try {
     if (editando.value && form.value.id) {
@@ -405,24 +407,42 @@ const salvar = async () => {
     }
     await carregarJornadas()
     fecharModal()
-    alert('✅ Jornada salva com sucesso!')
+    
+    toast.success(
+      editando.value ? 'Jornada atualizada!' : 'Jornada criada!',
+      editando.value 
+        ? `A jornada "${form.value.nome}" foi atualizada com sucesso.`
+        : `A jornada "${form.value.nome}" foi criada com sucesso.`
+    )
   } catch (error: any) {
-    alert(`Erro ao salvar: ${error.data?.message || error.message}`)
+    toast.error(
+      'Erro ao salvar jornada',
+      error.data?.message || error.message || 'Não foi possível salvar a jornada.'
+    )
   } finally {
     saving.value = false
   }
 }
 
 const excluir = async () => {
+  const toast = useToast()
+  
   if (!confirm('Deseja realmente excluir esta jornada?')) return
   
   try {
     await $fetch(`/api/jornadas/${form.value.id}`, { method: 'DELETE' })
     await carregarJornadas()
     fecharModal()
-    alert('✅ Jornada excluída com sucesso!')
+    
+    toast.success(
+      'Jornada excluída!',
+      `A jornada "${form.value.nome}" foi excluída com sucesso.`
+    )
   } catch (error: any) {
-    alert(`Erro ao excluir: ${error.data?.message || error.message}`)
+    toast.error(
+      'Erro ao excluir jornada',
+      error.data?.message || error.message || 'Não foi possível excluir a jornada.'
+    )
   }
 }
 </script>

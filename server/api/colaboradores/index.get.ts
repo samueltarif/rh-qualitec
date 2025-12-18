@@ -19,7 +19,11 @@ export default defineEventHandler(async (event) => {
       status, 
       email_corporativo, 
       matricula,
-      cargo:cargos(id, nome)
+      tipo_contrato,
+      qtd_dependentes,
+      cargo:cargos(id, nome, nivel),
+      departamento:departamentos!colaboradores_departamento_id_fkey(id, nome),
+      jornada:jornadas_trabalho(id, nome, tipo)
     `)
     .eq('status', statusFilter)
     .order('nome')
