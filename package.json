@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "build:vercel": "NUXT_CONFIG_FILE=nuxt.config.vercel.ts nuxt build",
+    "build:vercel": "NUXT_CONFIG_FILE=nuxt.config.vercel-stable.ts nuxt build",
     "build:minimal": "NUXT_CONFIG_FILE=nuxt.config.minimal.ts nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
