@@ -4,11 +4,5 @@
     ".output/server/**/*.mjs": {
       "maxDuration": 60
     }
-  },
-  "env": {
-    "NUXT_SECRET_KEY": "@nuxt_secret_key",
-    "NUXT_PUBLIC_SUPABASE_URL": "@nuxt_public_supabase_url",
-    "NUXT_PUBLIC_SUPABASE_KEY": "@nuxt_public_supabase_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key"
   }
 }
