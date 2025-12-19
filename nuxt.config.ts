@@ -3,29 +3,29 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false }, // Desabilitar em produção
   
-  // Nitro config otimizado para Vercel
+  // Nitro config FORÇANDO Node.js runtime
   nitro: {
     preset: 'vercel',
     experimental: {
       wasm: false
     },
+    // FORÇAR Node.js runtime para TUDO
+    vercel: {
+      functions: {
+        '.output/server/**/*.mjs': {
+          runtime: 'nodejs20.x'
+        }
+      }
+    },
     // Otimizações críticas para reduzir bundle
     minify: true,
     sourceMap: false,
-    // Usar Node.js runtime para APIs pesadas (PDF, Email)
+    // Desabilitar Edge Functions completamente
     routeRules: {
-      '/api/holerites/**': { 
+      '/api/**': { 
         isr: false,
         prerender: false,
         headers: { 'cache-control': 's-maxage=0' }
-      },
-      '/api/funcionario/ponto/download-pdf': { 
-        isr: false,
-        prerender: false 
-      },
-      '/api/email/**': { 
-        isr: false,
-        prerender: false 
       }
     }
   },
@@ -126,8 +126,7 @@ export default defineNuxtConfig({
 
   // Otimizações experimentais
   experimental: {
-    payloadExtraction: false,
-    inlineSSRStyles: false
+    payloadExtraction: false
   },
 
   // Build otimizado

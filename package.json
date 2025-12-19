@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "build:vercel": "NUXT_CONFIG_FILE=nuxt.config.vercel.ts nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -12,7 +13,7 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "pre-deploy": "node scripts/pre-deploy-check.js",
-    "deploy-check": "npm run pre-deploy && npm run build"
+    "deploy-check": "npm run pre-deploy && npm run build:vercel"
   },
   "dependencies": {
     "@nuxt/icon": "^1.9.3",

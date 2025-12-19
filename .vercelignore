@@ -2,9 +2,8 @@
 node_modules
 .pnpm-store
 
-# Build outputs
+# Build outputs (manter apenas .output/public)
 .nuxt
-.output
 dist
 build
 
@@ -35,28 +34,46 @@ Thumbs.db
 .git
 .gitignore
 
-# Database
+# Database (TUDO)
 database/
 *.sql
 
-# Documentation
+# Documentation (TUDO)
 *.md
 !README.md
+docs/
+SISTEMA_*.md
+CORRECAO_*.md
+EXECUTAR_*.md
+SOLUCAO_*.md
+FIX_*.md
+DEBUG_*.md
+TESTE_*.md
 
-# Tests
+# Tests (TUDO)
 test/
 tests/
 __tests__/
 *.test.*
 *.spec.*
+__tests__/
 
-# Development files
+# Development files (TUDO)
 scripts/
-docs/
 examples/
+.kiro/
 
-# Large files that shouldn't be in Edge Functions
+# Large files
 *.pdf
 *.xlsx
 *.csv
 *.zip
+
+# Arquivos de configuração desnecessários
+nuxt.config.vercel.ts
+fix-*.js
+verify-setup.js
+
+# Arquivos temporários
+*.tmp
+*.temp
