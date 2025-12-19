@@ -3,8 +3,15 @@
   "functions": {
     ".output/server/**/*.mjs": {
       "runtime": "nodejs20.x",
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "server/api/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
-  "outputDirectory": ".output/public"
+  "outputDirectory": ".output/public",
+  "framework": "nuxtjs"
 }

@@ -1,136 +1,106 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+// Configuração otimizada para Vercel FREE Plan
+// Usa Node.js runtime (50MB limite) em vez de Edge Functions (1MB limite)
+
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
-  devtools: { enabled: false }, // Desabilitar em produção
-  
-  // Nitro config FORÇANDO Node.js runtime
+  // ✅ MUDANÇA CRÍTICA: Node.js em vez de Edge
   nitro: {
     preset: 'vercel',
-    experimental: {
-      wasm: false
-    },
-    // FORÇAR Node.js runtime para TUDO
+    // Força Node.js runtime para todas as funções
     vercel: {
       functions: {
-        '.output/server/**/*.mjs': {
-          runtime: 'nodejs20.x'
-        }
+        // Todas as APIs usam Node.js (50MB limite)
+        'api/**': { runtime: 'nodejs20.x' },
+        'server/**': { runtime: 'nodejs20.x' }
       }
     },
-    // Otimizações críticas para reduzir bundle
+    // Otimizações de bundle
     minify: true,
     sourceMap: false,
-    // Desabilitar Edge Functions completamente
-    routeRules: {
-      '/api/**': { 
-        isr: false,
-        prerender: false,
-        headers: { 'cache-control': 's-maxage=0' }
-      }
-    }
-  },
-  
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxtjs/supabase',
-    '@nuxt/icon'
-  ],
-
-  // Supabase Config
-  supabase: {
-    url: process.env.NUXT_PUBLIC_SUPABASE_URL,
-    key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    redirect: false,
-    redirectOptions: {
-      login: '/login',
-      callback: '/confirm',
-      exclude: ['/login', '/'],
-    },
-    cookieOptions: {
-      maxAge: 60 * 60 * 8, // 8 hours
-      sameSite: 'lax',
-      secure: false // set to true in production with HTTPS
-    },
-    clientOptions: {
-      auth: {
-        flowType: 'pkce',
-        detectSessionInUrl: true,
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    }
-  },
-
-  // Runtime Config
-  runtimeConfig: {
-    // Variáveis privadas (server-side only)
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    
-    // Gmail Configuration
-    gmailEmail: process.env.GMAIL_EMAIL,
-    gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
-    emailJobsToken: process.env.EMAIL_JOBS_TOKEN,
-    
-    // Variáveis públicas (expostas no client)
-    public: {
-      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-    }
-  },
-
-  // CSS Global
-  css: ['~/assets/css/tailwind.css'],
-
-  // Vite config otimizado
-  vite: {
-    server: {
-      watch: {
-        usePolling: true
-      }
-    },
-    build: {
-      // Otimizações críticas para reduzir bundle
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            // Separar dependências pesadas
-            'pdf-libs': ['jspdf', 'jspdf-autotable', 'html2canvas'],
-            'excel-libs': ['xlsx'],
-            'email-libs': ['nodemailer'],
-            'supabase': ['@supabase/supabase-js']
-          }
-        }
-      },
-      // Reduzir tamanho do bundle
-      chunkSizeWarningLimit: 1000,
-      sourcemap: false
-    },
-    optimizeDeps: {
-      // Pré-bundling de dependências pesadas
-      include: [
-        '@supabase/supabase-js',
-        'vue',
-        'vue-router'
-      ],
-      exclude: [
-        // Excluir libs pesadas do Edge Runtime
-        'jspdf',
-        'jspdf-autotable', 
-        'html2canvas',
-        'xlsx',
-        'nodemailer'
+    // Remove dependências desnecessárias do bundle
+    externals: {
+      inline: [
+        // Mantém apenas essenciais inline
+        '@nuxt/kit',
+        'defu'
       ]
     }
   },
 
-  // Otimizações experimentais
-  experimental: {
-    payloadExtraction: false
+  // ✅ Otimizações de build
+  build: {
+    transpile: ['@headlessui/vue']
   },
 
-  // Build otimizado
-  build: {
-    transpile: ['@nuxtjs/supabase']
+  // ✅ Webpack otimizado
+  webpack: {
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: 10
+          }
+        }
+      }
+    }
+  },
+
+  // ✅ CSS otimizado
+  css: [
+    '~/assets/css/tailwind.css'
+  ],
+
+  // ✅ Modules essenciais apenas
+  modules: [
+    '@nuxtjs/tailwindcss',
+    '@pinia/nuxt',
+    '@nuxtjs/supabase'
+  ],
+
+  // ✅ Runtime config otimizado
+  runtimeConfig: {
+    // Server-side apenas
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    jwtSecret: process.env.JWT_SECRET,
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    smtpUser: process.env.SMTP_USER,
+    smtpPass: process.env.SMTP_PASS,
+    
+    // Public (client-side)
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'https://rh-qualitec.vercel.app'
+    }
+  },
+
+  // ✅ Supabase otimizado
+  supabase: {
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirm',
+      exclude: ['/']
+    }
+  },
+
+  // ✅ Tailwind otimizado
+  tailwindcss: {
+    cssPath: '~/assets/css/tailwind.css',
+    configPath: 'tailwind.config.js'
+  },
+
+  // ✅ Otimizações de produção
+  experimental: {
+    payloadExtraction: false,
+    inlineSSRStyles: false
+  },
+
+  // ✅ Compressão e minificação
+  render: {
+    compressor: { threshold: 0 }
   }
 })
