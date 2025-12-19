@@ -7,10 +7,18 @@
 </template>
 
 <script setup lang="ts">
-// Inicializar autenticação ao carregar a aplicação
-const { initAuth } = useAppAuth()
+// TEMPORÁRIO: Removido initAuth para debug do erro 500
+// TODO: Reativar após corrigir problema de SSR
 
+// Inicializar autenticação apenas no client-side
 onMounted(async () => {
-  await initAuth()
+  try {
+    if (process.client) {
+      const { initAuth } = useAppAuth()
+      await initAuth()
+    }
+  } catch (error) {
+    console.error('Erro ao inicializar auth:', error)
+  }
 })
 </script>
