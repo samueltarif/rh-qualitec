@@ -3,8 +3,8 @@
  * Atualiza automaticamente registros de ponto em andamento
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { calcularHorasTempoReal, registroEmAndamento, type RegistroPonto } from '~/utils/pontoCalculos'
+import { ref, computed, onMounted, onUnmounted, watch, type Ref } from 'vue'
+import { calcularHorasTempoReal, calcularHorasTrabalhadas, registroEmAndamento, type RegistroPonto } from '~/utils/pontoCalculos'
 
 export function usePontoTempoReal(registros: Ref<any[]>) {
   const horaAtual = ref(new Date())

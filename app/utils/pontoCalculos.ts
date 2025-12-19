@@ -125,10 +125,12 @@ export function calcularHorasTrabalhadas(registro: RegistroPonto): ResultadoCalc
   const intervalo1Completo = intervaloCompleto(registro.saida_1, registro.entrada_2)
   const intervalo1Parcial = intervaloParcial(registro.saida_1, registro.entrada_2)
   
-  // Apenas verificar entrada_3/saida_3 se já tiver saida_2 (jornada completa + horas extras)
+  // Apenas verificar entrada_3/saida_3 se houver indicação de horas extras
+  // Horas extras só existem se já tiver jornada completa E entrada_3 preenchida
   const temJornadaCompleta = !!(registro.entrada_1 && registro.saida_1 && registro.entrada_2 && registro.saida_2)
-  const intervalo2Completo = temJornadaCompleta && intervaloCompleto(registro.saida_2, registro.entrada_3)
-  const intervalo2Parcial = temJornadaCompleta && intervaloParcial(registro.saida_2, registro.entrada_3)
+  const temHorasExtras = !!(registro.entrada_3 || registro.saida_3)
+  const intervalo2Completo = temJornadaCompleta && temHorasExtras && intervaloCompleto(registro.saida_2, registro.entrada_3)
+  const intervalo2Parcial = temJornadaCompleta && temHorasExtras && intervaloParcial(registro.saida_2, registro.entrada_3)
 
   // CASO 1: Intervalo 1 parcial (falta saída ou retorno)
   if (intervalo1Parcial) {
@@ -139,9 +141,9 @@ export function calcularHorasTrabalhadas(registro: RegistroPonto): ResultadoCalc
     }
   }
 
-  // CASO 2: Intervalo 2 parcial (apenas se já tiver jornada completa)
+  // CASO 2: Intervalo 2 parcial (apenas se houver indicação de horas extras)
   if (intervalo2Parcial) {
-    if (registro.saida_2 && !registro.entrada_3) {
+    if (registro.saida_2 && registro.entrada_3 && !registro.saida_3) {
       avisos.push('⚠️ Hora extra iniciada — falta horário de saída')
     } else if (!registro.saida_2 && registro.entrada_3) {
       avisos.push('⚠️ Registro inconsistente — entrada extra sem saída da jornada')
