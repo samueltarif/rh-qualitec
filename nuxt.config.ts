@@ -1,13 +1,32 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
+  devtools: { enabled: false }, // Desabilitar em produção
   
-  // Nitro config para Vercel (Node.js runtime para compatibilidade com PDF/Email)
+  // Nitro config otimizado para Vercel
   nitro: {
     preset: 'vercel',
     experimental: {
       wasm: false
+    },
+    // Otimizações críticas para reduzir bundle
+    minify: true,
+    sourceMap: false,
+    // Usar Node.js runtime para APIs pesadas (PDF, Email)
+    routeRules: {
+      '/api/holerites/**': { 
+        isr: false,
+        prerender: false,
+        headers: { 'cache-control': 's-maxage=0' }
+      },
+      '/api/funcionario/ponto/download-pdf': { 
+        isr: false,
+        prerender: false 
+      },
+      '/api/email/**': { 
+        isr: false,
+        prerender: false 
+      }
     }
   },
   
@@ -63,12 +82,56 @@ export default defineNuxtConfig({
   // CSS Global
   css: ['~/assets/css/tailwind.css'],
 
-  // Vite config para Windows
+  // Vite config otimizado
   vite: {
     server: {
       watch: {
         usePolling: true
       }
+    },
+    build: {
+      // Otimizações críticas para reduzir bundle
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Separar dependências pesadas
+            'pdf-libs': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+            'excel-libs': ['xlsx'],
+            'email-libs': ['nodemailer'],
+            'supabase': ['@supabase/supabase-js']
+          }
+        }
+      },
+      // Reduzir tamanho do bundle
+      chunkSizeWarningLimit: 1000,
+      sourcemap: false
+    },
+    optimizeDeps: {
+      // Pré-bundling de dependências pesadas
+      include: [
+        '@supabase/supabase-js',
+        'vue',
+        'vue-router'
+      ],
+      exclude: [
+        // Excluir libs pesadas do Edge Runtime
+        'jspdf',
+        'jspdf-autotable', 
+        'html2canvas',
+        'xlsx',
+        'nodemailer'
+      ]
     }
+  },
+
+  // Otimizações experimentais
+  experimental: {
+    payloadExtraction: false,
+    inlineSSRStyles: false
+  },
+
+  // Build otimizado
+  build: {
+    transpile: ['@nuxtjs/supabase']
   }
 })

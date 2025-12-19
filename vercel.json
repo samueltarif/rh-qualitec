@@ -4,5 +4,19 @@
     ".output/server/**/*.mjs": {
       "maxDuration": 60
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/holerites/(.*)",
+      "dest": "/.output/server/api/holerites/$1"
+    },
+    {
+      "src": "/api/funcionario/ponto/download-pdf",
+      "dest": "/.output/server/api/funcionario/ponto/download-pdf"
+    },
+    {
+      "src": "/api/email/(.*)",
+      "dest": "/.output/server/api/email/$1"
+    }
+  ]
 }

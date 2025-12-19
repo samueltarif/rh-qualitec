@@ -1,24 +1,62 @@
-# Arquivos desnecessários para o deploy
-*.md
-*.txt
-/docs
-/tests
-/database/fixes
-/database/migrations
-*.sql
-.env.example
-verify-setup.js
-playwright.config.ts
-tailwind.config.ts
-tsconfig.json
+# Dependencies
+node_modules
+.pnpm-store
 
-# Logs e cache
-*.log
+# Build outputs
 .nuxt
 .output
-node_modules/.cache
+dist
+build
 
-# Arquivos temporários
-*.tmp
-*.temp
-relatorio*.html
+# Logs
+*.log
+logs
+
+# Environment files
+.env*
+!.env.example
+
+# Cache
+.cache
+.temp
+.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Database
+database/
+*.sql
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+test/
+tests/
+__tests__/
+*.test.*
+*.spec.*
+
+# Development files
+scripts/
+docs/
+examples/
+
+# Large files that shouldn't be in Edge Functions
+*.pdf
+*.xlsx
+*.csv
+*.zip
