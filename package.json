@@ -10,7 +10,9 @@
     "postinstall": "nuxt prepare",
     "verify": "node verify-setup.js",
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "pre-deploy": "node scripts/pre-deploy-check.js",
+    "deploy-check": "npm run pre-deploy && npm run build"
   },
   "dependencies": {
     "@nuxt/icon": "^1.9.3",

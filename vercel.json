@@ -1,33 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "nuxt.config.ts",
-      "use": "@nuxtjs/vercel-builder",
-      "config": {
-        "serverFiles": ["server/**"]
-      }
+  "functions": {
+    ".output/server/**/*.mjs": {
+      "maxDuration": 60
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  },
   "env": {
     "NUXT_SECRET_KEY": "@nuxt_secret_key",
     "SUPABASE_URL": "@supabase_url",
     "SUPABASE_ANON_KEY": "@supabase_anon_key",
     "SUPABASE_SECRET_KEY": "@supabase_secret_key"
-  },
-  "functions": {
-    "server/api/**/*.ts": {
-      "maxDuration": 30
-    }
   }
 }

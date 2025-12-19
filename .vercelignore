@@ -1,0 +1,24 @@
+# Arquivos desnecessários para o deploy
+*.md
+*.txt
+/docs
+/tests
+/database/fixes
+/database/migrations
+*.sql
+.env.example
+verify-setup.js
+playwright.config.ts
+tailwind.config.ts
+tsconfig.json
+
+# Logs e cache
+*.log
+.nuxt
+.output
+node_modules/.cache
+
+# Arquivos temporários
+*.tmp
+*.temp
+relatorio*.html

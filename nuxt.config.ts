@@ -3,11 +3,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   
-  // Nitro config para Vercel
+  // Nitro config para Vercel (Node.js runtime para compatibilidade com PDF/Email)
   nitro: {
-    preset: 'vercel-edge',
+    preset: 'vercel',
     experimental: {
-      wasm: true
+      wasm: false
     }
   },
   

@@ -1,5 +1,25 @@
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+// Importações condicionais para evitar problemas no servidor
+let jsPDF: any = null
+let autoTable: any = null
+
+// Função para importar bibliotecas apenas no cliente
+async function loadPDFLibs() {
+  if (process.client && !jsPDF) {
+    try {
+      const jsPDFModule = await import('jspdf')
+      const autoTableModule = await import('jspdf-autotable')
+      
+      jsPDF = jsPDFModule.default || jsPDFModule
+      autoTable = autoTableModule.default || autoTableModule
+      
+      return true
+    } catch (error) {
+      console.error('❌ Erro ao carregar bibliotecas PDF:', error)
+      return false
+    }
+  }
+  return !!jsPDF
+}
 
 interface HoleriteData {
   id: string
@@ -45,7 +65,12 @@ interface EmpresaData {
  * Gera holerite no formato OFICIAL da empresa
  * Exatamente igual ao modelo mostrado na imagem de referência
  */
-export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: EmpresaData) {
+export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: EmpresaData) {
+  // Verificar se estamos no cliente e carregar bibliotecas
+  if (!await loadPDFLibs()) {
+    throw new Error('Bibliotecas PDF não disponíveis no servidor')
+  }
+  
   const doc = new jsPDF()
   
   // Verificar se os dados necessários estão presentes
@@ -435,8 +460,8 @@ export function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: Empres
   return doc
 }
 
-export function downloadHoleritePDFOficial(holerite: HoleriteData, empresa?: EmpresaData) {
-  const doc = gerarHoleritePDFOficial(holerite, empresa)
+export async function downloadHoleritePDFOficial(holerite: HoleriteData, empresa?: EmpresaData) {
+  const doc = await gerarHoleritePDFOficial(holerite, empresa)
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
   

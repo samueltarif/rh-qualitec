@@ -8,6 +8,11 @@ import { calcularIRRF as calcularIRRFComRedutor } from '../../utils/irrf-lei-152
 export default defineEventHandler(async (event) => {
   const startTime = Date.now()
   
+  // Importar utilitários de diagnóstico do Vercel
+  const { safeVercelOperation, logVercelInfo } = await import('../../utils/vercel-diagnostics')
+  
+  logVercelInfo('Iniciando geração de holerites')
+  
   try {
     const supabase = await serverSupabaseClient(event)
     const user = await serverSupabaseUser(event)
@@ -128,8 +133,34 @@ export default defineEventHandler(async (event) => {
     const holeritesGerados: any[] = []
     const erros: any[] = []
 
-    // Gerar holerite para cada colaborador
-    for (const colab of colaboradores) {
+    // Processar colaboradores em lotes para evitar timeout
+    const BATCH_SIZE = 5 // Processar 5 colaboradores por vez
+    const batches = []
+    
+    for (let i = 0; i < colaboradores.length; i += BATCH_SIZE) {
+      batches.push(colaboradores.slice(i, i + BATCH_SIZE))
+    }
+    
+    logVercelInfo(`Processando ${colaboradores.length} colaboradores em ${batches.length} lotes`)
+    
+    // Processar cada lote
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex]
+      logVercelInfo(`Processando lote ${batchIndex + 1}/${batches.length} (${batch.length} colaboradores)`)
+      
+      // Verificar se ainda temos tempo (máximo 45 segundos para ser seguro)
+      const elapsedTime = Date.now() - startTime
+      if (elapsedTime > 45000) {
+        console.warn('⚠️ Timeout preventivo - interrompendo processamento')
+        erros.push({
+          colaborador: 'Sistema',
+          erro: `Timeout preventivo após ${Math.round(elapsedTime/1000)}s. Processados ${holeritesGerados.length} de ${colaboradores.length} colaboradores.`
+        })
+        break
+      }
+      
+      // Processar colaboradores do lote atual
+      for (const colab of batch) {
       try {
         console.log(`\n${'='.repeat(60)}`)
         console.log('📋 Processando colaborador:', colab.nome)
@@ -308,6 +339,12 @@ export default defineEventHandler(async (event) => {
           colaborador: colab.nome,
           erro: error.message,
         })
+      }
+      }
+      
+      // Pequena pausa entre lotes para não sobrecarregar
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
     }
 

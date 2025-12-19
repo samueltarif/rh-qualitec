@@ -1,4 +1,19 @@
-import nodemailer from 'nodemailer'
+// Importação condicional para evitar problemas no Vercel Edge
+let nodemailer: any = null
+
+// Função para importar nodemailer apenas quando necessário
+async function getNodemailer() {
+  if (!nodemailer) {
+    try {
+      nodemailer = await import('nodemailer')
+      return nodemailer.default || nodemailer
+    } catch (error) {
+      console.error('❌ Erro ao importar nodemailer:', error)
+      throw new Error('Nodemailer não disponível neste ambiente')
+    }
+  }
+  return nodemailer
+}
 
 interface EmailConfig {
   servidor_smtp: string
@@ -33,18 +48,25 @@ export class EmailService {
   async initialize(config: EmailConfig) {
     this.config = config
 
-    this.transporter = nodemailer.createTransport({
-      host: config.servidor_smtp,
-      port: config.porta,
-      secure: config.usa_ssl, // true para 465, false para outros portos
-      auth: {
-        user: config.usuario_smtp,
-        pass: config.senha_smtp
-      },
-      tls: {
-        rejectUnauthorized: false // Para desenvolvimento
-      }
-    })
+    try {
+      const nodemailerLib = await getNodemailer()
+      
+      this.transporter = nodemailerLib.createTransport({
+        host: config.servidor_smtp,
+        port: config.porta,
+        secure: config.usa_ssl, // true para 465, false para outros portos
+        auth: {
+          user: config.usuario_smtp,
+          pass: config.senha_smtp
+        },
+        tls: {
+          rejectUnauthorized: false // Para desenvolvimento
+        }
+      })
+    } catch (error) {
+      console.error('❌ Erro ao inicializar transporter:', error)
+      return false
+    }
 
     // Testar conexão
     try {
