@@ -1,1 +1,0 @@
-import{c as s}from"./nitro.mjs";import{s as a}from"./serverSupabaseClient.mjs";const serverSupabaseUser=async t=>{const r=await a(t),{data:e,error:o}=await r.auth.getClaims();if(o)throw s({statusMessage:o?.message});return e?.claims??null};export{serverSupabaseUser as s};

@@ -1,1 +1,0 @@
-async function fetchWithRetry(t,e){for(let r=1;r<=3;r++)try{return await fetch(t,e)}catch(o){if(e?.signal?.aborted)throw o;if(3===r)throw console.error(`Error fetching request ${t}`,o,e),o;console.warn(`Retrying fetch attempt ${r+1} for request: ${t}`),await new Promise(t=>setTimeout(t,100*r))}throw new Error("Unreachable code")}export{fetchWithRetry as f};
