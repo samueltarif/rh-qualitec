@@ -5,8 +5,12 @@
  * Verifica se o projeto está pronto para deploy sem erros
  */
 
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 console.log('🔍 Verificação Pré-Deploy - Sistema RH Qualitec\n')
 
@@ -23,7 +27,8 @@ const essentialFiles = [
 
 console.log('📁 Verificando arquivos essenciais...')
 essentialFiles.forEach(file => {
-  if (fs.existsSync(file)) {
+  const filePath = path.resolve(process.cwd(), file)
+  if (fs.existsSync(filePath)) {
     console.log(`✅ ${file}`)
   } else {
     console.log(`❌ ${file} - AUSENTE`)
@@ -35,7 +40,7 @@ essentialFiles.forEach(file => {
 // Verificar configuração do Nuxt
 console.log('\n⚙️ Verificando nuxt.config.ts...')
 try {
-  const nuxtConfig = fs.readFileSync('nuxt.config.ts', 'utf8')
+  const nuxtConfig = fs.readFileSync(path.resolve(process.cwd(), 'nuxt.config.ts'), 'utf8')
   
   if (nuxtConfig.includes('vercel-edge')) {
     console.log('❌ Usando vercel-edge (problemático)')
@@ -59,7 +64,7 @@ try {
 // Verificar vercel.json
 console.log('\n🚀 Verificando vercel.json...')
 try {
-  const vercelConfig = JSON.parse(fs.readFileSync('vercel.json', 'utf8'))
+  const vercelConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'vercel.json'), 'utf8'))
   
   if (vercelConfig.functions && vercelConfig.functions['.output/server/**/*.mjs']) {
     const maxDuration = vercelConfig.functions['.output/server/**/*.mjs'].maxDuration
@@ -81,7 +86,7 @@ try {
 // Verificar package.json
 console.log('\n📦 Verificando dependências...')
 try {
-  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'))
   
   const requiredDeps = [
     'nuxt',
@@ -107,7 +112,7 @@ try {
 // Verificar imports problemáticos
 console.log('\n🔍 Verificando imports problemáticos...')
 const checkImports = (dir) => {
-  const files = fs.readdirSync(dir, { withFileTypes: true })
+  const files = fs.readdirSync(path.resolve(process.cwd(), dir), { withFileTypes: true })
   
   files.forEach(file => {
     if (file.isDirectory() && file.name !== 'node_modules' && file.name !== '.git') {
@@ -141,13 +146,15 @@ try {
 // Verificar variáveis de ambiente
 console.log('\n🔐 Verificando variáveis de ambiente...')
 const requiredEnvVars = [
+  'NUXT_SECRET_KEY',
   'NUXT_PUBLIC_SUPABASE_URL',
   'NUXT_PUBLIC_SUPABASE_KEY',
   'SUPABASE_SERVICE_ROLE_KEY'
 ]
 
-if (fs.existsSync('.env')) {
-  const envContent = fs.readFileSync('.env', 'utf8')
+const envPath = path.resolve(process.cwd(), '.env')
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8')
   
   requiredEnvVars.forEach(envVar => {
     if (envContent.includes(envVar)) {
