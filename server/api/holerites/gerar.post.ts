@@ -179,7 +179,44 @@ export default defineEventHandler(async (event) => {
           continue // Pula para o próximo colaborador
         }
         
-        console.log('✅ Salário base válido:', salarioBase)
+        // Buscar benefícios do colaborador
+        const { data: beneficios } = await supabase
+          .from('colaboradores')
+          .select(`
+            vale_transporte,
+            vale_refeicao,
+            vale_alimentacao,
+            plano_saude,
+            plano_odontologico,
+            seguro_vida,
+            auxilio_creche,
+            auxilio_educacao,
+            auxilio_combustivel,
+            outros_beneficios
+          `)
+          .eq('id', colab.id)
+          .single()
+
+        console.log('🎁 Benefícios do colaborador:', beneficios)
+
+        // Calcular valores dos benefícios (alguns podem ser descontados do salário)
+        const valeTransporte = parseFloat(beneficios?.vale_transporte || 0)
+        const valeRefeicao = parseFloat(beneficios?.vale_refeicao || 0)
+        const valeAlimentacao = parseFloat(beneficios?.vale_alimentacao || 0)
+        const planoSaude = parseFloat(beneficios?.plano_saude || 0)
+        const planoOdontologico = parseFloat(beneficios?.plano_odontologico || 0)
+        const seguroVida = parseFloat(beneficios?.seguro_vida || 0)
+        const auxilioCreche = parseFloat(beneficios?.auxilio_creche || 0)
+        const auxilioEducacao = parseFloat(beneficios?.auxilio_educacao || 0)
+        const auxilioCombustivel = parseFloat(beneficios?.auxilio_combustivel || 0)
+        const outrosBeneficios = parseFloat(beneficios?.outros_beneficios || 0)
+
+        // Calcular desconto do vale transporte (6% do salário, limitado ao valor do benefício)
+        const descontoValeTransporte = valeTransporte > 0 
+          ? Math.min(salarioBase * 0.06, valeTransporte) 
+          : 0
+
+        console.log('💳 Desconto Vale Transporte:', descontoValeTransporte)
         
         // Calcular INSS (progressivo - tabela 2024 OFICIAL)
         const faixasINSS = [
@@ -251,7 +288,7 @@ export default defineEventHandler(async (event) => {
         
         // Totais
         const totalProventos = salarioBase
-        const totalDescontos = inss + irrf + valorAdiantamento
+        const totalDescontos = inss + irrf + valorAdiantamento + descontoValeTransporte + planoSaude + planoOdontologico + seguroVida
         const salarioLiquido = totalProventos - totalDescontos
 
         // Verificar se já existe holerite MENSAL para este período
@@ -280,10 +317,26 @@ export default defineEventHandler(async (event) => {
           cpf: colab.cpf || '',
           cargo: (colab as any).cargo?.nome || 'Não informado',
           departamento: (colab as any).departamento?.nome || 'Não informado',
+          codigo_colaborador: colab.codigo || String(colab.id).slice(-4),
+          cbo: colab.cbo || '354125',
+          matricula: colab.matricula || '1',
+          data_admissao: colab.data_admissao || null,
           salario_base: salarioBase,
           total_proventos: totalProventos,
           inss,
           irrf,
+          // Benefícios (valores brutos - não descontados)
+          vale_transporte: valeTransporte,
+          vale_refeicao: valeRefeicao,
+          vale_alimentacao: valeAlimentacao,
+          // Benefícios que são descontados do salário
+          plano_saude: planoSaude,
+          plano_odontologico: planoOdontologico,
+          seguro_vida: seguroVida,
+          auxilio_creche: auxilioCreche,
+          auxilio_educacao: auxilioEducacao,
+          auxilio_combustivel: auxilioCombustivel,
+          outros_beneficios: outrosBeneficios,
           total_descontos: totalDescontos,
           salario_bruto: totalProventos,
           salario_liquido: salarioLiquido,
@@ -293,7 +346,6 @@ export default defineEventHandler(async (event) => {
           banco: colab.banco || null,
           agencia: colab.agencia || null,
           conta: colab.conta || null,
-          data_admissao: colab.data_admissao || null,
           observacoes,
           status: 'gerado',
           gerado_por: userData.id,
@@ -331,6 +383,15 @@ export default defineEventHandler(async (event) => {
         console.log(`   💳 IRRF: R$ ${irrf.toFixed(2)}`)
         if (valorAdiantamento > 0) {
           console.log(`   💳 Adiantamento: R$ ${valorAdiantamento.toFixed(2)}`)
+        }
+        if (descontoValeTransporte > 0) {
+          console.log(`   🚌 Vale Transporte (desconto): R$ ${descontoValeTransporte.toFixed(2)}`)
+        }
+        if (planoSaude > 0) {
+          console.log(`   🏥 Plano de Saúde: R$ ${planoSaude.toFixed(2)}`)
+        }
+        if (planoOdontologico > 0) {
+          console.log(`   🦷 Plano Odontológico: R$ ${planoOdontologico.toFixed(2)}`)
         }
         console.log(`   💰 Salário Líquido: R$ ${salarioLiquido.toFixed(2)}`)
       } catch (error: any) {

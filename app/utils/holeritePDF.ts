@@ -171,7 +171,7 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
   // ===== TABELA PRINCIPAL (5 COLUNAS) =====
   const linhasTabela: any[] = []
   
-  // PROVENTOS
+  // ===== PROVENTOS =====
   if (holerite.tipo === 'decimo_terceiro') {
     // ✅ REGRA CORRETA PARA 13º SALÁRIO
     const valorCorreto = holerite.total_proventos || 0
@@ -203,6 +203,7 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     }
   }
   
+  // HORAS EXTRAS
   if (holerite.valor_horas_extras_50 && holerite.valor_horas_extras_50 > 0) {
     linhasTabela.push(['002', 'HORAS EXTRAS 50%', String(holerite.horas_extras_50 || 0), formatCurrency(holerite.valor_horas_extras_50), ''])
   }
@@ -211,12 +212,9 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     linhasTabela.push(['003', 'HORAS EXTRAS 100%', String(holerite.horas_extras_100 || 0), formatCurrency(holerite.valor_horas_extras_100), ''])
   }
   
-  if (holerite.bonus && holerite.bonus > 0) {
-    linhasTabela.push(['010', 'BÔNUS / GRATIFICAÇÕES', '', formatCurrency(holerite.bonus), ''])
-  }
-  
-  if (holerite.comissoes && holerite.comissoes > 0) {
-    linhasTabela.push(['011', 'COMISSÕES', '', formatCurrency(holerite.comissoes), ''])
+  // ADICIONAIS
+  if (holerite.adicional_noturno && holerite.adicional_noturno > 0) {
+    linhasTabela.push(['014', 'ADICIONAL NOTURNO', '', formatCurrency(holerite.adicional_noturno), ''])
   }
   
   if (holerite.adicional_insalubridade && holerite.adicional_insalubridade > 0) {
@@ -227,13 +225,19 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     linhasTabela.push(['013', 'ADICIONAL PERICULOSIDADE', '', formatCurrency(holerite.adicional_periculosidade), ''])
   }
   
-  if (holerite.adicional_noturno && holerite.adicional_noturno > 0) {
-    linhasTabela.push(['014', 'ADICIONAL NOTURNO', '', formatCurrency(holerite.adicional_noturno), ''])
+  // BONIFICAÇÕES E COMISSÕES
+  if (holerite.bonus && holerite.bonus > 0) {
+    linhasTabela.push(['010', 'BÔNUS / GRATIFICAÇÕES', '', formatCurrency(holerite.bonus), ''])
   }
   
+  if (holerite.comissoes && holerite.comissoes > 0) {
+    linhasTabela.push(['011', 'COMISSÕES', '', formatCurrency(holerite.comissoes), ''])
+  }
+  
+  // OUTROS PROVENTOS
   if (holerite.outros_proventos && holerite.outros_proventos > 0) {
     linhasTabela.push([
-      '19',
+      '019',
       holerite.descricao_outros_proventos || 'OUTROS PROVENTOS',
       '',
       formatCurrency(holerite.outros_proventos),
@@ -255,24 +259,30 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
       ])
     })
   
-  // DESCONTOS
+  // ===== DESCONTOS =====
+  // INSS (obrigatório)
   if (holerite.inss && holerite.inss > 0) {
-    const aliquotaINSS = ((holerite.inss / holerite.salario_base) * 100).toFixed(2)
+    const baseCalculo = holerite.salario_base || holerite.total_proventos || 0
+    const aliquotaINSS = baseCalculo > 0 ? ((holerite.inss / baseCalculo) * 100).toFixed(2) : '0,00'
     linhasTabela.push(['998', 'I.N.S.S.', aliquotaINSS, '', formatCurrency(holerite.inss)])
   }
   
+  // IRRF (se houver)
   if (holerite.irrf && holerite.irrf > 0) {
     linhasTabela.push(['999', 'I.R.R.F.', '', '', formatCurrency(holerite.irrf)])
   }
   
+  // ADIANTAMENTO SALARIAL
   if (holerite.adiantamento && holerite.adiantamento > 0) {
     linhasTabela.push(['910', 'ADIANTAMENTO SALARIAL', '', '', formatCurrency(holerite.adiantamento)])
   }
   
+  // EMPRÉSTIMOS/CONSIGNADOS
   if (holerite.emprestimos && holerite.emprestimos > 0) {
     linhasTabela.push(['911', 'EMPRÉSTIMOS / CONSIGNADOS', '', '', formatCurrency(holerite.emprestimos)])
   }
   
+  // FALTAS E ATRASOS
   if (holerite.faltas && holerite.faltas > 0) {
     linhasTabela.push(['903', 'FALTAS', '', '', formatCurrency(holerite.faltas)])
   }
@@ -281,6 +291,7 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     linhasTabela.push(['904', 'ATRASOS', '', '', formatCurrency(holerite.atrasos)])
   }
   
+  // BENEFÍCIOS (que são descontados do salário)
   if (holerite.plano_saude && holerite.plano_saude > 0) {
     linhasTabela.push(['920', 'PLANO DE SAÚDE', '', '', formatCurrency(holerite.plano_saude)])
   }
@@ -293,6 +304,22 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     linhasTabela.push(['922', 'SEGURO DE VIDA', '', '', formatCurrency(holerite.seguro_vida)])
   }
   
+  // VALE TRANSPORTE (se houver desconto)
+  if (holerite.vale_transporte && holerite.vale_transporte > 0) {
+    linhasTabela.push(['930', 'VALE TRANSPORTE', '', '', formatCurrency(holerite.vale_transporte)])
+  }
+  
+  // VALE REFEIÇÃO (se houver desconto)
+  if (holerite.vale_refeicao && holerite.vale_refeicao > 0) {
+    linhasTabela.push(['931', 'VALE REFEIÇÃO', '', '', formatCurrency(holerite.vale_refeicao)])
+  }
+  
+  // VALE ALIMENTAÇÃO (se houver desconto)
+  if (holerite.vale_alimentacao && holerite.vale_alimentacao > 0) {
+    linhasTabela.push(['932', 'VALE ALIMENTAÇÃO', '', '', formatCurrency(holerite.vale_alimentacao)])
+  }
+  
+  // AUXÍLIOS (se houver desconto)
   if (holerite.auxilio_creche && holerite.auxilio_creche > 0) {
     linhasTabela.push(['923', 'AUXÍLIO CRECHE', '', '', formatCurrency(holerite.auxilio_creche)])
   }
@@ -305,10 +332,12 @@ export async function gerarHoleritePDFOficial(holerite: HoleriteData, empresa?: 
     linhasTabela.push(['925', 'AUXÍLIO COMBUSTÍVEL', '', '', formatCurrency(holerite.auxilio_combustivel)])
   }
   
+  // OUTROS BENEFÍCIOS
   if (holerite.outros_beneficios && holerite.outros_beneficios > 0) {
     linhasTabela.push(['926', 'OUTROS BENEFÍCIOS', '', '', formatCurrency(holerite.outros_beneficios)])
   }
   
+  // OUTROS DESCONTOS
   if (holerite.outros_descontos && holerite.outros_descontos > 0) {
     linhasTabela.push([
       '905',
