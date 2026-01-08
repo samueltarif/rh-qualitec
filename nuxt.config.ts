@@ -57,7 +57,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
-    '@nuxtjs/supabase'
+    '@nuxtjs/supabase',
+    '@nuxt/icon'
   ],
 
   // ✅ Runtime config otimizado
@@ -91,6 +92,15 @@ export default defineNuxtConfig({
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
     configPath: 'tailwind.config.js'
+  },
+
+  // ✅ Configuração de ícones
+  icon: {
+    size: '24px',
+    class: 'icon',
+    aliases: {
+      'nuxt': 'logos:nuxt-icon'
+    }
   },
 
   // ✅ Otimizações de produção
