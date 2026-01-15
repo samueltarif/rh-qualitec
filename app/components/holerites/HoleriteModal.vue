@@ -1,0 +1,177 @@
+<template>
+  <div v-if="holerite" class="space-y-6">
+    <!-- Debug -->
+    <div v-if="!holerite.funcionario" class="bg-red-50 p-4 rounded">
+      <p class="text-red-600">Erro: Dados do funcionário não encontrados</p>
+      <pre class="text-xs mt-2">{{ JSON.stringify(holerite, null, 2) }}</pre>
+    </div>
+
+    <!-- Dados do Funcionário -->
+    <div v-if="holerite.funcionario" class="bg-gray-50 rounded-xl p-4">
+      <p class="font-semibold text-gray-800">{{ holerite.funcionario.nome_completo }}</p>
+      <p class="text-gray-500">{{ holerite.funcionario.cargo }} - {{ holerite.funcionario.empresa }}</p>
+      <p class="text-sm text-gray-400 mt-1">Período: {{ formatarPeriodo(holerite.periodo_inicio, holerite.periodo_fim) }}</p>
+    </div>
+
+    <!-- Proventos -->
+    <div>
+      <h3 class="text-lg font-bold text-green-600 mb-3">Proventos</h3>
+      <div class="space-y-2">
+        <div class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Salário Base</span>
+          <span class="font-semibold">{{ formatarMoeda(holerite.salario_base) }}</span>
+        </div>
+        <div v-if="holerite.bonus" class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Bônus</span>
+          <span class="font-semibold">{{ formatarMoeda(holerite.bonus) }}</span>
+        </div>
+        <div v-if="holerite.horas_extras" class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Horas Extras</span>
+          <span class="font-semibold">{{ formatarMoeda(holerite.horas_extras) }}</span>
+        </div>
+      </div>
+      <div class="flex justify-between py-2 mt-2 bg-green-50 px-3 rounded-lg">
+        <span class="font-bold text-green-700">Total Proventos</span>
+        <span class="font-bold text-green-700">{{ formatarMoeda(calcularTotalProventos()) }}</span>
+      </div>
+    </div>
+
+    <!-- Descontos -->
+    <div>
+      <h3 class="text-lg font-bold text-red-600 mb-3">Descontos</h3>
+      <div class="space-y-2">
+        <div v-if="holerite.inss" class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">INSS</span>
+          <span class="font-semibold text-red-600">- {{ formatarMoeda(holerite.inss) }}</span>
+        </div>
+        <div v-if="holerite.irrf" class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">IRRF</span>
+          <span class="font-semibold text-red-600">- {{ formatarMoeda(holerite.irrf) }}</span>
+        </div>
+        <div v-if="holerite.vale_transporte" class="flex justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Vale Transporte</span>
+          <span class="font-semibold text-red-600">- {{ formatarMoeda(holerite.vale_transporte) }}</span>
+        </div>
+      </div>
+      <div class="flex justify-between py-2 mt-2 bg-red-50 px-3 rounded-lg">
+        <span class="font-bold text-red-700">Total Descontos</span>
+        <span class="font-bold text-red-700">- {{ formatarMoeda(calcularTotalDescontos()) }}</span>
+      </div>
+    </div>
+
+    <!-- Líquido -->
+    <div class="bg-primary-50 rounded-xl p-4">
+      <div class="flex justify-between items-center">
+        <span class="text-xl font-bold text-primary-800">Salário Líquido</span>
+        <span class="text-2xl font-bold text-primary-700">{{ formatarMoeda(holerite.salario_liquido) }}</span>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      <UiButton variant="secondary" @click="$emit('close')">
+        Fechar
+      </UiButton>
+      <UiButton variant="ghost" @click="baixarHTML">
+        📄 Baixar HTML
+      </UiButton>
+      <UiButton @click="baixarPDF">
+        📄 Baixar PDF
+      </UiButton>
+    </div>
+  </div>
+  
+  <div v-else class="p-8 text-center">
+    <p class="text-gray-500">Carregando dados do holerite...</p>
+  </div>
+</template>
+
+<script setup lang="ts">
+const props = defineProps<{
+  holerite: any
+}>()
+
+const emit = defineEmits<{
+  close: []
+}>()
+
+const formatarMoeda = (valor: number | undefined | null) => {
+  if (!valor) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(valor)
+}
+
+const formatarPeriodo = (inicio: string | undefined, fim: string | undefined) => {
+  if (!inicio || !fim) return 'Período não definido'
+  const dataInicio = new Date(inicio).toLocaleDateString('pt-BR')
+  const dataFim = new Date(fim).toLocaleDateString('pt-BR')
+  return `${dataInicio} - ${dataFim}`
+}
+
+const calcularTotalProventos = () => {
+  let total = props.holerite.salario_base || 0
+  if (props.holerite.bonus) total += props.holerite.bonus
+  if (props.holerite.horas_extras) total += props.holerite.horas_extras
+  return total
+}
+
+const calcularTotalDescontos = () => {
+  let total = 0
+  if (props.holerite.inss) total += props.holerite.inss
+  if (props.holerite.irrf) total += props.holerite.irrf
+  if (props.holerite.vale_transporte) total += props.holerite.vale_transporte
+  return total
+}
+
+const baixarHTML = async () => {
+  try {
+    // Fazer download do HTML
+    const response = await fetch(`/api/holerites/${props.holerite.id}/html`)
+    
+    if (!response.ok) {
+      throw new Error('Erro ao gerar HTML')
+    }
+    
+    // Criar blob e fazer download
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `holerite-${props.holerite.funcionario.nome_completo.replace(/\s+/g, '-')}.html`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('Erro ao baixar HTML:', error)
+    alert('Erro ao baixar HTML do holerite')
+  }
+}
+
+const baixarPDF = async () => {
+  try {
+    // Fazer download do PDF
+    const response = await fetch(`/api/holerites/${props.holerite.id}/pdf`)
+    
+    if (!response.ok) {
+      throw new Error('Erro ao gerar PDF')
+    }
+    
+    // Criar blob e fazer download
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `holerite-${props.holerite.funcionario.nome_completo.replace(/\s+/g, '-')}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('Erro ao baixar PDF:', error)
+    alert('Erro ao baixar PDF do holerite')
+  }
+}
+</script>
