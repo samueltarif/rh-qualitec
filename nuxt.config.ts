@@ -67,13 +67,11 @@ export default defineNuxtConfig({
     '~/assets/css/main.css'
   ],
 
-  // Configurações específicas para SSR
+  // Configurações SSR básicas
   ssr: true,
   
-  // Otimizações para Vercel
+  // Configurações experimentais mínimas
   experimental: {
-    payloadExtraction: false,
-    renderJsonPayloads: true,
-    externalVue: false  // CRÍTICO: Desativa externalização do Vue no Nuxt 4
+    externalVue: false
   }
 })
