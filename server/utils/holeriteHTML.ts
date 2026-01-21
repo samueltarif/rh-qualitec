@@ -10,12 +10,19 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
   // Número de dependentes
   const numeroDependentes = funcionario.numero_dependentes || 0
   
-  // Determinar tipo de folha
+  // Determinar tipo de folha e cor
   const diaInicio = periodoInicio.getDate()
   const diaFim = periodoFim.getDate()
   let tipoFolha = 'Folha Mensal'
+  let isAdiantamento = false
+  let corTema = '#2563eb' // Azul para folha mensal
+  let corFundo = '#eff6ff' // Azul claro para folha mensal
+  
   if (diaInicio === 1 && diaFim <= 15) {
-    tipoFolha = 'Folha Quinzenal - 1ª Quinzena'
+    tipoFolha = 'Adiantamento Salarial - 1ª Quinzena'
+    isAdiantamento = true
+    corTema = '#ea580c' // Laranja para adiantamento
+    corFundo = '#fff7ed' // Laranja claro para adiantamento
   } else if (diaInicio === 16) {
     tipoFolha = 'Folha Quinzenal - 2ª Quinzena'
   }
@@ -325,19 +332,23 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
       line-height: 1.4;
       color: #333;
       padding: 20px;
-      background: #fff;
+      background: ${corFundo};
     }
     
     .container {
       max-width: 800px;
       margin: 0 auto;
       background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
     .header {
       margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #333;
+      padding: 20px 20px 15px 20px;
+      border-bottom: 3px solid ${corTema};
+      background: linear-gradient(135deg, ${corFundo} 0%, white 100%);
+      border-radius: 8px 8px 0 0;
     }
     
     .header-top {
@@ -351,11 +362,13 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
       font-size: 16px;
       font-weight: bold;
       text-transform: uppercase;
+      color: ${corTema};
     }
     
     .company-cnpj {
       font-size: 11px;
       margin-top: 3px;
+      color: #666;
     }
     
     .header-right {
@@ -363,23 +376,37 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
     }
     
     .folha-tipo {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: bold;
+      color: ${corTema};
+      background: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid ${corTema};
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .folha-tipo::before {
+      content: "${isAdiantamento ? '💰' : '📊'}";
+      margin-right: 8px;
     }
     
     .competencia {
       font-size: 11px;
       text-transform: capitalize;
+      margin-top: 5px;
+      color: #666;
     }
     
     .employee-info {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
+      margin: 0 20px 20px 20px;
+      padding: 15px;
+      background: ${corFundo};
+      border: 2px solid ${corTema};
+      border-radius: 8px;
     }
     
     .info-item {
@@ -397,24 +424,33 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
     }
     
     table {
-      width: 100%;
+      width: calc(100% - 40px);
+      margin: 0 20px 15px 20px;
       border-collapse: collapse;
-      margin-bottom: 15px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     th {
-      background: #f0f0f0;
-      padding: 8px 5px;
+      background: ${corTema};
+      color: white;
+      padding: 12px 8px;
       text-align: left;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: bold;
-      border: 1px solid #ccc;
+      border: none;
     }
     
     td {
-      padding: 6px 5px;
-      border: 1px solid #ddd;
+      padding: 8px;
+      border: 1px solid #e5e7eb;
       font-size: 10px;
+      background: white;
+    }
+    
+    tr:nth-child(even) td {
+      background: #f9fafb;
     }
     
     .text-right {
@@ -426,25 +462,33 @@ export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any)
     }
     
     .totals {
-      margin-top: 10px;
-      padding: 10px;
-      background: #f9f9f9;
-      border: 2px solid #333;
+      margin: 10px 20px 20px 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, ${corFundo} 0%, white 100%);
+      border: 3px solid ${corTema};
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
     .total-row {
       display: flex;
       justify-content: space-between;
-      padding: 5px 0;
-      font-size: 11px;
+      padding: 8px 0;
+      font-size: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .total-row:last-child {
+      border-bottom: none;
     }
     
     .total-row.liquido {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: bold;
-      padding-top: 10px;
-      border-top: 2px solid #333;
-      margin-top: 5px;
+      padding: 15px 0 10px 0;
+      border-top: 3px solid ${corTema};
+      margin-top: 10px;
+      color: ${corTema};
     }
     
     .signature {

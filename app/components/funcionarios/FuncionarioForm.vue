@@ -6,7 +6,7 @@
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          @click="() => { console.log('Clicou na aba:', tab.id); abaAtiva = tab.id }"
+          @click="abaAtiva = tab.id"
           :class="[
             'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
             abaAtiva === tab.id
@@ -22,243 +22,34 @@
     <!-- Conteúdo das Abas -->
     <div class="min-h-[400px]">
       <!-- Aba: Dados Pessoais -->
-      <div v-if="abaAtiva === 'pessoais'" class="space-y-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">👤 Dados Pessoais</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="md:col-span-2">
-            <UiInput 
-              v-model="form.nome_completo" 
-              label="Nome Completo" 
-              required 
-              placeholder="Digite o nome completo"
-            />
-          </div>
-          
-          <UiInput 
-            v-model="form.cpf" 
-            label="CPF" 
-            required
-            placeholder="000.000.000-00"
-          />
-          
-          <UiInputPIS 
-            v-model="form.pis_pasep" 
-            label="PIS/PASEP" 
-            placeholder="000.00000.00-0"
-          />
-          
-          <UiInput 
-            v-model="form.rg" 
-            label="RG" 
-            placeholder="00.000.000-0"
-          />
-          
-          <UiInput 
-            v-model="form.data_nascimento" 
-            type="date" 
-            label="Data de Nascimento"
-          />
-          
-          <UiSelect 
-            v-model="form.sexo" 
-            :options="sexoOptions" 
-            label="Sexo" 
-            placeholder="Selecione..."
-          />
-          
-          <UiInput 
-            v-model="form.telefone" 
-            label="Telefone"
-            placeholder="(11) 99999-9999"
-          />
-          
-          <UiInput 
-            v-model="form.email_pessoal" 
-            type="email" 
-            :uppercase="false"
-            label="Email Pessoal" 
-            placeholder="email@pessoal.com"
-          />
-        </div>
-      </div>
+      <FuncionarioDadosPessoais 
+        v-if="abaAtiva === 'pessoais'" 
+        :form="form" 
+      />
 
       <!-- Aba: Dados Profissionais -->
-      <div v-if="abaAtiva === 'profissionais'" class="space-y-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">💼 Dados Profissionais</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Empresa -->
-          <div v-if="showEmpresaSelect" class="md:col-span-2">
-            <UiSelect 
-              v-model="form.empresa_id" 
-              :options="empresasOptions" 
-              label="Empresa" 
-              placeholder="Selecione a empresa..."
-            />
-          </div>
-          
-          <UiSelect 
-            v-model="form.departamento_id" 
-            :options="departamentosOptions" 
-            label="Departamento" 
-            placeholder="Selecione..."
-          />
-          
-          <UiSelect 
-            v-model="form.cargo_id" 
-            :options="cargosOptions" 
-            label="Cargo" 
-            placeholder="Selecione..."
-          />
-          
-          <UiSelect 
-            v-model="form.tipo_contrato" 
-            :options="tipoContratoOptions" 
-            label="Tipo de Contrato"
-          />
-          
-          <UiInput 
-            v-model="form.data_admissao" 
-            type="date" 
-            label="Data de Admissão"
-          />
-          
-          <UiInput 
-            v-model="form.matricula" 
-            label="Matrícula/Registro" 
-            placeholder="Gerado automaticamente"
-          />
-          
-          <UiSelect 
-            v-model="form.jornada_trabalho_id" 
-            :options="jornadaOptionsComputed" 
-            label="Jornada de Trabalho"
-          />
-          
-          <UiSelect 
-            v-model="form.responsavel_id" 
-            :options="responsavelOptions" 
-            label="Responsável Direto" 
-            placeholder="Selecione..."
-          />
-        </div>
-        
-        <div class="mt-4 p-4 bg-blue-50 rounded-xl">
-          <p class="text-sm text-blue-700">
-            👩‍💼 <strong>Responsável Padrão:</strong> Silvana é automaticamente definida como responsável direto de todos os funcionários. 
-            Você pode alterar se necessário, mas por padrão ela supervisiona toda a equipe.
-          </p>
-        </div>
-      </div>
+      <FuncionarioDadosProfissionais 
+        v-if="abaAtiva === 'profissionais'" 
+        :form="form"
+        :show-empresa-select="showEmpresaSelect"
+        :empresas-options="empresasOptions"
+        :departamentos-options="departamentosOptions"
+        :cargos-options="cargosOptions"
+        :jornada-options-computed="jornadaOptionsComputed"
+        :responsavel-options="responsavelOptions"
+      />
 
       <!-- Aba: Acesso ao Sistema -->
-      <div v-if="abaAtiva === 'acesso'" class="space-y-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">🔐 Acesso ao Sistema</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput 
-            v-model="form.email_login" 
-            type="email" 
-            :uppercase="false"
-            label="Email de Login"
-            required
-            placeholder="email@empresa.com"
-          />
-          
-          <UiInput 
-            v-model="form.senha" 
-            type="password" 
-            label="Senha"
-            required
-            show-password-toggle
-            placeholder="••••••••"
-          />
-          
-          <UiSelect 
-            v-model="form.tipo_acesso" 
-            :options="tipoAcessoOptions" 
-            label="Tipo de Acesso"
-          />
-          
-          <UiSelect 
-            v-model="form.status" 
-            :options="statusOptions" 
-            label="Status do Usuário"
-          />
-        </div>
-        
-        <div class="mt-4 p-4 bg-blue-50 rounded-xl">
-          <h4 class="font-semibold text-blue-800 mb-2">📋 Tipos de Acesso:</h4>
-          <ul class="text-sm text-blue-700 space-y-1">
-            <li><strong>Funcionário:</strong> Visualiza apenas seus próprios dados</li>
-            <li><strong>Administrador:</strong> Acesso total ao sistema</li>
-          </ul>
-        </div>
-      </div>
+      <FuncionarioAcessoSistema 
+        v-if="abaAtiva === 'acesso'" 
+        :form="form" 
+      />
 
       <!-- Aba: Dados Financeiros -->
-      <div v-if="abaAtiva === 'financeiros'" class="space-y-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">💰 Dados Financeiros</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput 
-            v-model="form.salario_base" 
-            type="number" 
-            :uppercase="false"
-            step="0.01"
-            label="Salário Base (R$)"
-            placeholder="0,00"
-          />
-          
-          <UiSelect 
-            v-model="form.tipo_salario" 
-            :options="tipoSalarioOptions" 
-            label="Tipo de Salário"
-          />
-          
-          <UiInput 
-            v-model="form.numero_dependentes" 
-            type="number" 
-            :uppercase="false"
-            min="0"
-            step="1"
-            label="Número de Dependentes (IRRF)"
-            placeholder="0"
-          />
-          
-          <UiInput 
-            v-model="form.banco" 
-            label="Banco" 
-            placeholder="Nome do banco"
-          />
-          
-          <UiInput 
-            v-model="form.agencia" 
-            label="Agência" 
-            placeholder="0000"
-          />
-          
-          <UiInput 
-            v-model="form.conta" 
-            label="Conta" 
-            placeholder="00000-0"
-          />
-          
-          <UiSelect 
-            v-model="form.tipo_conta" 
-            :options="tipoContaOptions" 
-            label="Tipo de Conta" 
-            placeholder="Selecione..."
-          />
-          
-          <UiSelect 
-            v-model="form.forma_pagamento" 
-            :options="formaPagamentoOptions" 
-            label="Forma de Pagamento"
-          />
-        </div>
-      </div>
+      <FuncionarioDadosFinanceiros 
+        v-if="abaAtiva === 'financeiros'" 
+        :form="form" 
+      />
 
       <!-- Aba: Benefícios e Descontos -->
       <div v-if="abaAtiva === 'beneficios'" class="space-y-6">
@@ -809,6 +600,11 @@
 
 <script setup lang="ts">
 import { reactive, isReactive } from 'vue'
+import FuncionarioDadosPessoais from './FuncionarioDadosPessoais.vue'
+import FuncionarioDadosProfissionais from './FuncionarioDadosProfissionais.vue'
+import FuncionarioAcessoSistema from './FuncionarioAcessoSistema.vue'
+import FuncionarioDadosFinanceiros from './FuncionarioDadosFinanceiros.vue'
+
 interface Props {
   form: any
   isEditing: boolean
@@ -839,52 +635,12 @@ const tabs = [
   { id: 'beneficios', label: 'Benefícios e Descontos', icon: '🎁' }
 ]
 
-// Opções para os selects
-const sexoOptions = [
-  { value: 'M', label: 'Masculino' },
-  { value: 'F', label: 'Feminino' },
-  { value: 'O', label: 'Outro' }
-]
-
-const tipoContratoOptions = [
-  { value: 'CLT', label: 'CLT' },
-  { value: 'PJ', label: 'PJ' },
-  { value: 'Estagio', label: 'Estágio' },
-  { value: 'Temporario', label: 'Temporário' }
-]
-
+// Opções para os selects (apenas as que ainda são usadas no componente principal)
 const jornadaOptions = [
   { value: '44h', label: '44h semanais' },
   { value: '40h', label: '40h semanais' },
   { value: '36h', label: '36h semanais' },
   { value: '30h', label: '30h semanais' }
-]
-
-const tipoAcessoOptions = [
-  { value: 'funcionario', label: 'Funcionário' },
-  { value: 'admin', label: 'Administrador' }
-]
-
-const statusOptions = [
-  { value: 'ativo', label: 'Ativo' },
-  { value: 'inativo', label: 'Inativo' }
-]
-
-const tipoSalarioOptions = [
-  { value: 'mensal', label: 'Mensal' },
-  { value: 'quinzenal', label: 'Quinzenal' },
-  { value: 'horista', label: 'Horista' }
-]
-
-const formaPagamentoOptions = [
-  { value: 'deposito', label: 'Depósito Bancário' },
-  { value: 'pix', label: 'PIX' }
-]
-
-const tipoContaOptions = [
-  { value: 'corrente', label: 'Conta Corrente' },
-  { value: 'poupanca', label: 'Conta Poupança' },
-  { value: 'salario', label: 'Conta Salário' }
 ]
 
 const tipoDescontoOptions = [
@@ -927,10 +683,15 @@ const { nomeAdmin, idAdmin, buscarAdmin } = useAdmin()
 
 // Função para inicializar benefícios de forma reativa
 const inicializarBeneficios = () => {
-  console.log('🔧 Inicializando benefícios...')
+  console.log('🔧 [FuncionarioForm] Inicializando benefícios...')
+  
+  if (!props.form) {
+    console.error('❌ [FuncionarioForm] ERRO: Não é possível inicializar benefícios - form é null!')
+    return
+  }
   
   if (!props.form.beneficios) {
-    console.log('📋 Criando estrutura de benefícios')
+    console.log('📋 [FuncionarioForm] Criando estrutura de benefícios')
     props.form.beneficios = reactive({
       vale_transporte: {
         ativo: false,
@@ -962,14 +723,17 @@ const inicializarBeneficios = () => {
       },
       personalizados: []
     })
+  } else {
+    console.log('✅ [FuncionarioForm] Benefícios já existem')
   }
 
   // Garantir que benefícios personalizados existam e sejam reativos
   if (!props.form.beneficios.personalizados) {
+    console.log('📋 [FuncionarioForm] Criando array de benefícios personalizados')
     props.form.beneficios.personalizados = reactive([])
   } else if (!isReactive(props.form.beneficios.personalizados)) {
     // Se existir mas não for reativo, tornar reativo e converter tipos
-    console.log('🔄 Tornando benefícios personalizados reativos e convertendo tipos')
+    console.log('🔄 [FuncionarioForm] Tornando benefícios personalizados reativos e convertendo tipos')
     const beneficiosConvertidos = props.form.beneficios.personalizados.map((beneficio: any) => ({
       ...beneficio,
       valor: typeof beneficio.valor === 'string' ? parseFloat(beneficio.valor) || 0 : beneficio.valor,
@@ -993,15 +757,20 @@ const inicializarBeneficios = () => {
   }
 
   if (!props.form.descontos_personalizados) {
-    console.log('📉 Criando array de descontos personalizados')
+    console.log('📉 [FuncionarioForm] Criando array de descontos personalizados')
     props.form.descontos_personalizados = reactive([])
   } else if (!isReactive(props.form.descontos_personalizados)) {
     // Se existir mas não for reativo, tornar reativo
-    console.log('🔄 Tornando descontos personalizados reativos')
+    console.log('🔄 [FuncionarioForm] Tornando descontos personalizados reativos')
     props.form.descontos_personalizados = reactive([...props.form.descontos_personalizados])
   }
   
-  console.log('✅ Benefícios inicializados:', props.form.beneficios)
+  console.log('✅ [FuncionarioForm] Benefícios inicializados:', {
+    beneficiosExist: !!props.form.beneficios,
+    valeTransporte: !!props.form.beneficios?.vale_transporte,
+    cestaBasica: !!props.form.beneficios?.cesta_basica,
+    personalizadosCount: props.form.beneficios?.personalizados?.length || 0
+  })
 }
 
 // Função para definir responsável padrão (Silvana - ID 1)
@@ -1015,31 +784,69 @@ const definirResponsavelPadrao = () => {
 
 // Carregar dados ao montar o componente
 onMounted(async () => {
-  console.log('🚀 Montando componente FuncionarioForm')
+  console.log('🚀 [FuncionarioForm] Montando componente')
+  console.log('📋 [FuncionarioForm] Props recebidas:', {
+    isEditing: props.isEditing,
+    showEmpresaSelect: props.showEmpresaSelect,
+    loading: props.loading,
+    formExists: !!props.form,
+    formKeys: props.form ? Object.keys(props.form) : 'null'
+  })
   
-  // Inicializar benefícios primeiro
-  inicializarBeneficios()
+  // Verificar se form existe
+  if (!props.form) {
+    console.error('❌ [FuncionarioForm] ERRO: Form é null/undefined!')
+    return
+  }
   
-  // Definir responsável padrão
-  definirResponsavelPadrao()
+  console.log('📝 [FuncionarioForm] Dados do form:', {
+    nome: props.form.nome_completo,
+    cpf: props.form.cpf,
+    email: props.form.email_login,
+    beneficios: props.form.beneficios ? 'Existe' : 'Null',
+    beneficiosKeys: props.form.beneficios ? Object.keys(props.form.beneficios) : 'null'
+  })
   
-  // Carregar dados das APIs
-  await Promise.all([
-    carregarJornadas(),
-    carregarEmpresas(),
-    carregarDepartamentos(),
-    carregarCargos(),
-    buscarAdmin()
-  ])
-  
-  console.log('✅ Componente montado com sucesso')
+  try {
+    // Inicializar benefícios primeiro
+    console.log('🔧 [FuncionarioForm] Inicializando benefícios...')
+    inicializarBeneficios()
+    
+    // Definir responsável padrão
+    console.log('👩‍💼 [FuncionarioForm] Definindo responsável padrão...')
+    definirResponsavelPadrao()
+    
+    // Carregar dados das APIs
+    console.log('📡 [FuncionarioForm] Carregando dados das APIs...')
+    await Promise.all([
+      carregarJornadas().catch(e => console.error('❌ Erro jornadas:', e)),
+      carregarEmpresas().catch(e => console.error('❌ Erro empresas:', e)),
+      carregarDepartamentos().catch(e => console.error('❌ Erro departamentos:', e)),
+      carregarCargos().catch(e => console.error('❌ Erro cargos:', e)),
+      buscarAdmin().catch(e => console.error('❌ Erro admin:', e))
+    ])
+    
+    console.log('✅ [FuncionarioForm] Componente montado com sucesso')
+    
+  } catch (error) {
+    console.error('❌ [FuncionarioForm] Erro durante montagem:', error)
+  }
 })
 
 // Watch para garantir que benefícios estejam sempre inicializados
-watch(() => props.form, (novoForm) => {
+watch(() => props.form, (novoForm, formAnterior) => {
+  console.log('👀 [FuncionarioForm] Watch form disparado:', {
+    novoFormExists: !!novoForm,
+    formAnteriorExists: !!formAnterior,
+    novoFormKeys: novoForm ? Object.keys(novoForm) : 'null',
+    beneficiosExists: novoForm?.beneficios ? 'Sim' : 'Não'
+  })
+  
   if (novoForm && !novoForm.beneficios) {
-    console.log('⚠️ Benefícios não encontrados no watch, inicializando...')
+    console.log('⚠️ [FuncionarioForm] Benefícios não encontrados no watch, inicializando...')
     inicializarBeneficios()
+  } else if (novoForm?.beneficios) {
+    console.log('✅ [FuncionarioForm] Benefícios já existem no form')
   }
 }, { deep: true, immediate: true })
 

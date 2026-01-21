@@ -24,7 +24,8 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
           <select v-model="filtroTipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="">Todos os tipos</option>
-            <option v-for="tipo in tipoOptions" :key="tipo.value" :value="tipo.value">{{ tipo.label }}</option>
+            <option value="adiantamento">💰 Adiantamento</option>
+            <option value="folha_mensal">📊 Folha Mensal</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -103,7 +104,9 @@ const {
   formatarData, 
   calcularDataDisponibilizacaoHolerite20,
   calcularPeriodoQuinzenal,
-  calcularValorQuinzenal
+  calcularValorQuinzenal,
+  isAdiantamento,
+  getTipoHolerite
 } = useHolerites()
 
 const filtroMes = ref('')
@@ -266,10 +269,9 @@ const holeritesFiltrados = computed(() => {
     if (filtroMes.value && h.mes !== filtroMes.value) return false
     if (filtroAno.value && h.ano !== filtroAno.value) return false
     if (filtroTipo.value) {
-      if (filtroTipo.value === 'mensal' && h.tipo !== 'Mensal') return false
-      if (filtroTipo.value === 'quinzenal' && h.tipo !== 'Quinzenal') return false
-      if (filtroTipo.value === '1quinzena' && h.quinzena !== 1) return false
-      if (filtroTipo.value === '2quinzena' && h.quinzena !== 2) return false
+      const tipoHolerite = getTipoHolerite(h)
+      if (filtroTipo.value === 'adiantamento' && tipoHolerite !== 'adiantamento') return false
+      if (filtroTipo.value === 'folha_mensal' && tipoHolerite !== 'folha_mensal') return false
     }
     return true
   })

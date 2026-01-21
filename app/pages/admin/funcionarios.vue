@@ -87,6 +87,7 @@ const form = ref({
   nome_completo: '',
   cpf: '',
   rg: '',
+  pis_pasep: '',
   data_nascimento: '',
   sexo: '',
   estado_civil: '',
@@ -108,12 +109,11 @@ const form = ref({
   empresa_id: '',
   departamento_id: '',
   cargo_id: '',
-  gestor_id: '',
+  responsavel_id: 1,
   tipo_contrato: 'CLT',
   data_admissao: '',
   matricula: '',
   jornada_trabalho_id: '',
-  escala: '',
   
   // Acesso ao Sistema
   email_login: '',
@@ -124,20 +124,54 @@ const form = ref({
   // Dados Financeiros
   salario_base: '',
   tipo_salario: 'mensal',
+  numero_dependentes: 0,
   banco: '',
   agencia: '',
   conta: '',
   tipo_conta: '',
   forma_pagamento: 'deposito',
   
-  // Proventos e Descontos
-  proventos_descontos: [],
+  // Benefícios
+  beneficios: {
+    vale_transporte: {
+      ativo: false,
+      valor: 0,
+      valor_mensal: 0,
+      tipo_desconto: 'percentual',
+      percentual_desconto: 6,
+      valor_desconto: 0
+    },
+    cesta_basica: {
+      ativo: false,
+      valor: 0,
+      valor_mensal: 0,
+      tipo_desconto: 'sem_desconto',
+      percentual_desconto: 0,
+      valor_desconto: 0
+    },
+    plano_saude: {
+      ativo: false,
+      plano: 'individual',
+      valor_empresa: 0,
+      valor_funcionario: 0,
+      dependentes: 0
+    },
+    plano_odonto: {
+      ativo: false,
+      valor_funcionario: 0,
+      dependentes: 0
+    },
+    personalizados: []
+  },
+  
+  // Descontos Personalizados
+  descontos_personalizados: [],
   
   // Observações
   observacoes_internas: ''
 })
 
-const funcionarios = ref([])
+const funcionarios = ref<any[]>([])
 
 // Carregar funcionários do banco
 const carregarFuncionarios = async () => {
@@ -169,16 +203,109 @@ const funcionariosFiltrados = computed(() => {
 })
 
 const abrirModal = async (func?: any) => {
+  console.log('🔍 [Funcionarios] Abrindo modal:', { 
+    isEditing: !!func, 
+    funcionarioId: func?.id,
+    funcionarioNome: func?.nome_completo 
+  })
+  
   if (func) {
-    funcionarioEditando.value = func
-    Object.assign(form.value, func)
+    // 🔧 CORREÇÃO: Buscar dados completos do funcionário da API
+    try {
+      console.log('🔍 [Funcionarios] Buscando dados completos do funcionário ID:', func.id)
+      
+      const funcionarioCompleto: any = await $fetch(`/api/funcionarios/${func.id}`)
+      
+      console.log('✅ [Funcionarios] Dados completos recebidos:', {
+        id: funcionarioCompleto.id,
+        nome: funcionarioCompleto.nome_completo,
+        beneficios: funcionarioCompleto.beneficios ? 'Existe' : 'Null',
+        beneficiosType: typeof funcionarioCompleto.beneficios,
+        keys: Object.keys(funcionarioCompleto)
+      })
+      
+      funcionarioEditando.value = funcionarioCompleto
+      
+      // Garantir que benefícios existam com estrutura correta
+      const beneficiosPadrao = {
+        vale_transporte: {
+          ativo: false,
+          valor: 0,
+          valor_mensal: 0,
+          tipo_desconto: 'percentual',
+          percentual_desconto: 6,
+          valor_desconto: 0
+        },
+        cesta_basica: {
+          ativo: false,
+          valor: 0,
+          valor_mensal: 0,
+          tipo_desconto: 'sem_desconto',
+          percentual_desconto: 0,
+          valor_desconto: 0
+        },
+        plano_saude: {
+          ativo: false,
+          plano: 'individual',
+          valor_empresa: 0,
+          valor_funcionario: 0,
+          dependentes: 0
+        },
+        plano_odonto: {
+          ativo: false,
+          valor_funcionario: 0,
+          dependentes: 0
+        },
+        personalizados: []
+      }
+      
+      // Mesclar benefícios do banco com estrutura padrão
+      const beneficiosMesclados = {
+        ...beneficiosPadrao,
+        ...(funcionarioCompleto.beneficios || {})
+      }
+      
+      // Garantir que personalizados seja array
+      if (!Array.isArray(beneficiosMesclados.personalizados)) {
+        beneficiosMesclados.personalizados = []
+      }
+      
+      // Atualizar form com dados completos
+      form.value = {
+        ...funcionarioCompleto,
+        beneficios: beneficiosMesclados,
+        descontos_personalizados: Array.isArray(funcionarioCompleto.descontos_personalizados) 
+          ? funcionarioCompleto.descontos_personalizados 
+          : []
+      }
+      
+      console.log('📋 [Funcionarios] Form atualizado:', {
+        nome: form.value.nome_completo,
+        cpf: form.value.cpf,
+        email: form.value.email_login,
+        beneficios: form.value.beneficios ? 'Estruturado' : 'Null',
+        beneficiosKeys: form.value.beneficios ? Object.keys(form.value.beneficios) : 'null'
+      })
+      
+    } catch (error) {
+      console.error('❌ [Funcionarios] Erro ao buscar funcionário:', error)
+      notificacao.value = {
+        title: 'Erro!',
+        message: 'Erro ao carregar dados do funcionário',
+        variant: 'error'
+      }
+      mostrarNotificacao.value = true
+      return
+    }
   } else {
+    console.log('➕ [Funcionarios] Criando novo funcionário')
     funcionarioEditando.value = null
     form.value = {
       // Dados Pessoais
       nome_completo: '',
       cpf: '',
       rg: '',
+      pis_pasep: '',
       data_nascimento: '',
       sexo: '',
       estado_civil: '',
@@ -200,12 +327,11 @@ const abrirModal = async (func?: any) => {
       empresa_id: '',
       departamento_id: '',
       cargo_id: '',
-      gestor_id: '',
+      responsavel_id: 1,
       tipo_contrato: 'CLT',
       data_admissao: '',
       matricula: '',
       jornada_trabalho_id: '',
-      escala: '',
       
       // Acesso ao Sistema
       email_login: '',
@@ -216,6 +342,7 @@ const abrirModal = async (func?: any) => {
       // Dados Financeiros
       salario_base: '',
       tipo_salario: 'mensal',
+      numero_dependentes: 0,
       banco: '',
       agencia: '',
       conta: '',
@@ -227,15 +354,17 @@ const abrirModal = async (func?: any) => {
         vale_transporte: {
           ativo: false,
           valor: 0,
+          valor_mensal: 0,
           tipo_desconto: 'percentual',
           percentual_desconto: 6,
           valor_desconto: 0
         },
-        vale_refeicao: {
+        cesta_basica: {
           ativo: false,
           valor: 0,
-          tipo_desconto: 'percentual',
-          percentual_desconto: 20,
+          valor_mensal: 0,
+          tipo_desconto: 'sem_desconto',
+          percentual_desconto: 0,
           valor_desconto: 0
         },
         plano_saude: {
@@ -249,7 +378,8 @@ const abrirModal = async (func?: any) => {
           ativo: false,
           valor_funcionario: 0,
           dependentes: 0
-        }
+        },
+        personalizados: []
       },
       
       // Descontos Personalizados
@@ -258,7 +388,11 @@ const abrirModal = async (func?: any) => {
       // Observações
       observacoes_internas: ''
     }
+    
+    console.log('📝 [Funcionarios] Form novo funcionário criado')
   }
+  
+  console.log('🚀 [Funcionarios] Abrindo modal...')
   modalAberto.value = true
 }
 
@@ -319,7 +453,7 @@ const salvarEEnviarAcesso = async () => {
     }
 
     // 1. Criar funcionário via API usando $fetch
-    const response = await $fetch('/api/funcionarios', {
+    const response: any = await $fetch('/api/funcionarios', {
       method: 'POST',
       body: form.value
     })

@@ -1,22 +1,38 @@
 <template>
-  <div v-if="holerite" class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+  <div v-if="holerite" :class="[
+    'border rounded-xl p-6 hover:shadow-lg transition-shadow',
+    getTipoHoleriteStyle().card
+  ]">
     <div class="flex items-start justify-between">
       <!-- Informações Principais -->
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-3">
+          <!-- Indicador de Tipo (Adiantamento vs Folha Mensal) -->
           <div 
             :class="[
               'w-12 h-12 rounded-full flex items-center justify-center text-2xl',
-              getStatusColor(holerite!.status).bg
+              getTipoHoleriteStyle().icon
             ]"
           >
-            {{ getStatusIcon(holerite!.status) }}
+            {{ getTipoHoleriteIcon() }}
           </div>
           
           <div>
-            <h3 class="text-lg font-bold text-gray-800">
-              {{ holerite.referencia }}
-            </h3>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-lg font-bold text-gray-800">
+                {{ holerite.referencia }}
+              </h3>
+              <!-- Badge do Tipo -->
+              <span 
+                :class="[
+                  'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide',
+                  getTipoHoleriteStyle().badge
+                ]"
+              >
+                {{ getTipoHoleriteLabel() }}
+              </span>
+            </div>
+            
             <div class="flex items-center gap-2 text-sm text-gray-500">
               <span>{{ holerite.competencia }}</span>
               <span v-if="holerite.quinzena" class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
@@ -175,5 +191,39 @@ const getStatusIcon = (status?: string): string => {
   }
   
   return icons[status || 'Pendente'] || '📄'
+}
+
+// Função para determinar se é adiantamento ou folha mensal
+const isAdiantamento = computed(() => {
+  return props.holerite?.quinzena === 1 || 
+         props.holerite?.tipo?.toLowerCase().includes('adiantamento') ||
+         props.holerite?.referencia?.toLowerCase().includes('adiantamento')
+})
+
+// Função para obter estilo do tipo de holerite
+const getTipoHoleriteStyle = () => {
+  if (isAdiantamento.value) {
+    return {
+      card: 'bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200',
+      icon: 'bg-gradient-to-br from-orange-400 to-yellow-500 text-white shadow-lg',
+      badge: 'bg-gradient-to-r from-orange-500 to-yellow-600 text-white shadow-sm'
+    }
+  } else {
+    return {
+      card: 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200',
+      icon: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg',
+      badge: 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-sm'
+    }
+  }
+}
+
+// Função para obter ícone do tipo de holerite
+const getTipoHoleriteIcon = (): string => {
+  return isAdiantamento.value ? '💰' : '📊'
+}
+
+// Função para obter label do tipo de holerite
+const getTipoHoleriteLabel = (): string => {
+  return isAdiantamento.value ? 'Adiantamento' : 'Folha Mensal'
 }
 </script>
