@@ -5,14 +5,20 @@ export const useAdmin = () => {
 
   // Buscar informações da admin (Silvana)
   const buscarAdmin = async () => {
+    console.log('📡 [useAdmin] Buscando informações da admin...')
     loading.value = true
     try {
       const { data } = await useFetch('/api/admin/info')
+      console.log('✅ [useAdmin] Resposta recebida:', data.value)
+      
       if (data.value?.success) {
         adminInfo.value = data.value.data
+        console.log('✅ [useAdmin] Admin carregada:', adminInfo.value)
+      } else {
+        console.log('⚠️ [useAdmin] Resposta sem sucesso')
       }
     } catch (error) {
-      console.error('Erro ao buscar admin:', error)
+      console.error('❌ [useAdmin] Erro ao buscar admin:', error)
     } finally {
       loading.value = false
     }

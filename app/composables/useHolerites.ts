@@ -1,4 +1,30 @@
 export const useHolerites = () => {
+  // Função para determinar se um holerite é adiantamento
+  const isAdiantamento = (holerite: any): boolean => {
+    // Verifica se é quinzena 1 ou se o período vai do dia 1 ao 15
+    if (holerite.quinzena === 1) return true
+    
+    if (holerite.periodo_inicio && holerite.periodo_fim) {
+      const inicio = new Date(holerite.periodo_inicio)
+      const fim = new Date(holerite.periodo_fim)
+      return inicio.getDate() === 1 && fim.getDate() <= 15
+    }
+    
+    // Verifica pelo tipo ou referência
+    return holerite.tipo?.toLowerCase().includes('adiantamento') ||
+           holerite.referencia?.toLowerCase().includes('adiantamento')
+  }
+
+  // Função para obter o tipo do holerite
+  const getTipoHolerite = (holerite: any): 'adiantamento' | 'folha_mensal' => {
+    return isAdiantamento(holerite) ? 'adiantamento' : 'folha_mensal'
+  }
+
+  // Função para obter label do tipo
+  const getTipoLabel = (holerite: any): string => {
+    return isAdiantamento(holerite) ? '💰 Adiantamento' : '📊 Folha Mensal'
+  }
+
   // Função para verificar se uma data é feriado
   const isFeriado = (data: Date): boolean => {
     const feriados = [
@@ -180,6 +206,12 @@ export const useHolerites = () => {
   }
 
   return {
+    // Funções de tipo de holerite
+    isAdiantamento,
+    getTipoHolerite,
+    getTipoLabel,
+    
+    // Funções de data e feriados
     isFeriado,
     isFimDeSemana,
     isDiaUtil,
@@ -187,8 +219,12 @@ export const useHolerites = () => {
     calcularDataDisponibilizacaoHolerite20,
     deveEstarDisponivelHolerite20,
     calcularProximasDisponibilizacoes,
+    
+    // Funções de formatação
     formatarData,
     formatarDataHora,
+    
+    // Funções de cálculo
     calcularPeriodoQuinzenal,
     isSalarioQuinzenal,
     calcularValorQuinzenal

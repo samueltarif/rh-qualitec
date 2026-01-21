@@ -43,21 +43,25 @@ export const useJornadas = () => {
   ]
 
   const carregarJornadas = async () => {
+    console.log('📡 [useJornadas] Carregando jornadas...')
     loading.value = true
     error.value = ''
 
     try {
       const response = await $fetch('/api/jornadas')
+      console.log('✅ [useJornadas] Resposta recebida:', response)
       
       if (response.success && response.data) {
         jornadas.value = response.data
+        console.log('✅ [useJornadas] Jornadas carregadas:', jornadas.value.length)
         return { success: true, message: 'Jornadas carregadas com sucesso!' }
       }
 
+      console.log('⚠️ [useJornadas] Resposta sem sucesso')
       return { success: false, message: 'Erro ao carregar jornadas' }
     } catch (err: any) {
       error.value = err.data?.message || 'Erro ao carregar jornadas'
-      console.error('Erro ao carregar jornadas:', err)
+      console.error('❌ [useJornadas] Erro ao carregar jornadas:', err)
       
       // Fallback para dados de exemplo em caso de erro
       jornadas.value = [
@@ -75,6 +79,7 @@ export const useJornadas = () => {
         }
       ]
       
+      console.log('🔧 [useJornadas] Usando dados de fallback')
       return { success: false, message: error.value }
     } finally {
       loading.value = false
