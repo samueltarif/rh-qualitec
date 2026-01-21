@@ -9,15 +9,17 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: false,
-  middleware: (to) => {
-    const { isAuthenticated } = useAuth()
-    
-    if (isAuthenticated.value) {
-      return navigateTo('/dashboard')
-    } else {
-      return navigateTo('/login')
-    }
+  layout: false
+})
+
+// Executar redirecionamento apenas no cliente
+onMounted(() => {
+  const { isAuthenticated } = useAuth()
+  
+  if (isAuthenticated.value) {
+    navigateTo('/dashboard')
+  } else {
+    navigateTo('/login')
   }
 })
 </script>
