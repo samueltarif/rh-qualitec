@@ -4,6 +4,4 @@ node_modules
 *.log
 database
 docs
-*.mjs
-*.js
-!.output/**
+!.vercel/output/**
