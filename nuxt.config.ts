@@ -4,7 +4,12 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   
   nitro: {
-    preset: 'vercel'
+    preset: 'vercel',
+    vercel: {
+      config: {
+        runtime: 'nodejs22.x'
+      }
+    }
   },
   
   modules: [

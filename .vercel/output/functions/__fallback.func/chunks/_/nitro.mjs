@@ -4257,7 +4257,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "8eafb5bc-d069-400f-8a95-20b7eb508f92",
+    "buildId": "9605e314-80e0-4d7e-b297-0eccaf6a0647",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4740,6 +4740,7 @@ const _lazy_YJnlrW = () => import('../routes/api/index.get4.mjs');
 const _lazy_BNbVdO = () => import('../routes/api/index.post3.mjs');
 const _lazy_85ihcD = () => import('../routes/api/funcionarios/meus-dados.get.mjs');
 const _lazy_3iq7En = () => import('../routes/api/funcionarios/meus-dados.patch.mjs');
+const _lazy_fhY_Rl = () => import('../routes/api/health.get.mjs');
 const _lazy_Ckfv8x = () => import('../routes/api/holerites/_id_.delete.mjs');
 const _lazy_CjcncK = () => import('../routes/api/holerites/_id_.patch.mjs');
 const _lazy_XbT4vE = () => import('../routes/api/holerites/_id/enviar-email.post.mjs');
@@ -4780,6 +4781,7 @@ const handlers = [
   { route: '/api/funcionarios', handler: _lazy_BNbVdO, lazy: true, middleware: false, method: "post" },
   { route: '/api/funcionarios/meus-dados', handler: _lazy_85ihcD, lazy: true, middleware: false, method: "get" },
   { route: '/api/funcionarios/meus-dados', handler: _lazy_3iq7En, lazy: true, middleware: false, method: "patch" },
+  { route: '/api/health', handler: _lazy_fhY_Rl, lazy: true, middleware: false, method: "get" },
   { route: '/api/holerites/:id', handler: _lazy_Ckfv8x, lazy: true, middleware: false, method: "delete" },
   { route: '/api/holerites/:id', handler: _lazy_CjcncK, lazy: true, middleware: false, method: "patch" },
   { route: '/api/holerites/:id/enviar-email', handler: _lazy_XbT4vE, lazy: true, middleware: false, method: "post" },
