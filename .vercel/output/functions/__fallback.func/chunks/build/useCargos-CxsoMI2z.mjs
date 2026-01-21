@@ -1,9 +1,9 @@
-import { ref, computed, readonly } from 'vue';
+import { v as vueExports } from '../routes/renderer.mjs';
 
 const useCargos = () => {
-  const cargos = ref([]);
-  const loading = ref(false);
-  const error = ref("");
+  const cargos = vueExports.ref([]);
+  const loading = vueExports.ref(false);
+  const error = vueExports.ref("");
   const carregarCargos = async () => {
     loading.value = true;
     error.value = "";
@@ -41,7 +41,7 @@ const useCargos = () => {
       loading.value = false;
     }
   };
-  const opcoesCargos = computed(() => {
+  const opcoesCargos = vueExports.computed(() => {
     if (!Array.isArray(cargos.value)) {
       return [];
     }
@@ -51,9 +51,9 @@ const useCargos = () => {
     }));
   });
   return {
-    cargos: readonly(cargos),
-    loading: readonly(loading),
-    error: readonly(error),
+    cargos: vueExports.readonly(cargos),
+    loading: vueExports.readonly(loading),
+    error: vueExports.readonly(error),
     opcoesCargos,
     carregarCargos,
     salvarCargo

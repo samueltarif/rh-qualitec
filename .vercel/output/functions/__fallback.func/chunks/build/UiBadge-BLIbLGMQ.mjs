@@ -1,7 +1,6 @@
-import { defineComponent, computed, mergeProps, unref, useSSRContext } from 'vue';
-import { ssrRenderAttrs, ssrRenderSlot } from 'vue/server-renderer';
+import { v as vueExports, d as ssrRenderAttrs_1, j as ssrRenderSlot_1 } from '../routes/renderer.mjs';
 
-const _sfc_main = /* @__PURE__ */ defineComponent({
+const _sfc_main = /* @__PURE__ */ vueExports.defineComponent({
   __name: "UiBadge",
   __ssrInlineRender: true,
   props: {
@@ -9,7 +8,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const variantClasses = computed(() => {
+    const variantClasses = vueExports.computed(() => {
       const variants = {
         primary: "bg-primary-100 text-primary-800",
         success: "bg-green-100 text-green-800",
@@ -21,17 +20,17 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       return variants[props.variant];
     });
     return (_ctx, _push, _parent, _attrs) => {
-      _push(`<span${ssrRenderAttrs(mergeProps({
-        class: ["inline-flex items-center px-3 py-1 rounded-full text-sm font-medium", unref(variantClasses)]
+      _push(`<span${ssrRenderAttrs_1(vueExports.mergeProps({
+        class: ["inline-flex items-center px-3 py-1 rounded-full text-sm font-medium", vueExports.unref(variantClasses)]
       }, _attrs))}>`);
-      ssrRenderSlot(_ctx.$slots, "default", {}, null, _push, _parent);
+      ssrRenderSlot_1(_ctx.$slots, "default", {}, null, _push, _parent);
       _push(`</span>`);
     };
   }
 });
 const _sfc_setup = _sfc_main.setup;
 _sfc_main.setup = (props, ctx) => {
-  const ssrContext = useSSRContext();
+  const ssrContext = vueExports.useSSRContext();
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("components/ui/UiBadge.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };

@@ -1,9 +1,9 @@
-import { ref, computed, readonly } from 'vue';
+import { v as vueExports } from '../routes/renderer.mjs';
 
 const useEmpresas = () => {
-  const empresas = ref([]);
-  const loading = ref(false);
-  const error = ref("");
+  const empresas = vueExports.ref([]);
+  const loading = vueExports.ref(false);
+  const error = vueExports.ref("");
   const empresasExemplo = [
     {
       id: "550e8400-e29b-41d4-a716-446655440000",
@@ -128,19 +128,19 @@ const useEmpresas = () => {
   const obterEmpresaPorId = (id) => {
     return empresas.value.find((e) => e.id === id);
   };
-  const obterEmpresasAtivas = computed(() => {
+  const obterEmpresasAtivas = vueExports.computed(() => {
     return empresas.value;
   });
-  const obterOpcoesEmpresas = computed(() => {
+  const obterOpcoesEmpresas = vueExports.computed(() => {
     return empresas.value.map((e) => ({
       value: e.id,
       label: e.nome
     }));
   });
   return {
-    empresas: readonly(empresas),
-    loading: readonly(loading),
-    error: readonly(error),
+    empresas: vueExports.readonly(empresas),
+    loading: vueExports.readonly(loading),
+    error: vueExports.readonly(error),
     obterEmpresasAtivas,
     obterOpcoesEmpresas,
     carregarEmpresas,

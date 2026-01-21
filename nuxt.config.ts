@@ -74,6 +74,7 @@ export default defineNuxtConfig({
   // Otimizações para Vercel
   experimental: {
     payloadExtraction: false,
-    renderJsonPayloads: true
+    renderJsonPayloads: true,
+    externalVue: false  // CRÍTICO: Desativa externalização do Vue no Nuxt 4
   }
 })

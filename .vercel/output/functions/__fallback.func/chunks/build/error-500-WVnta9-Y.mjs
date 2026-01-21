@@ -1,7 +1,6 @@
-import { mergeProps, useSSRContext } from 'vue';
-import { ssrRenderAttrs, ssrInterpolate } from 'vue/server-renderer';
 import { _ as _export_sfc } from './server.mjs';
 import { u as useHead } from './composables-DkhAw7cL.mjs';
+import { d as ssrRenderAttrs_1, g as ssrInterpolate_1, v as vueExports } from '../routes/renderer.mjs';
 import '../_/nitro.mjs';
 import 'node:http';
 import 'node:https';
@@ -10,13 +9,12 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
-import '../routes/renderer.mjs';
-import 'vue-bundle-renderer/runtime';
+import '@supabase/ssr';
+import '../_/shared.cjs.prod.mjs';
+import 'node:stream';
 import 'unhead/server';
 import 'devalue';
 import 'unhead/utils';
-import 'vue-router';
-import '@supabase/ssr';
 
 const _sfc_main = {
   __name: "error-500",
@@ -59,13 +57,13 @@ const _sfc_main = {
       ]
     });
     return (_ctx, _push, _parent, _attrs) => {
-      _push(`<div${ssrRenderAttrs(mergeProps({ class: "antialiased bg-white dark:bg-[#020420] dark:text-white font-sans grid min-h-screen overflow-hidden place-content-center text-[#020420] tracking-wide" }, _attrs))} data-v-8851f357><div class="max-w-520px text-center" data-v-8851f357><h1 class="font-semibold leading-none mb-4 sm:text-[110px] tabular-nums text-[80px]" data-v-8851f357>${ssrInterpolate(__props.statusCode)}</h1><h2 class="font-semibold mb-2 sm:text-3xl text-2xl" data-v-8851f357>${ssrInterpolate(__props.statusMessage)}</h2><p class="mb-4 px-2 text-[#64748B] text-md" data-v-8851f357>${ssrInterpolate(__props.description)}</p></div></div>`);
+      _push(`<div${ssrRenderAttrs_1(vueExports.mergeProps({ class: "antialiased bg-white dark:bg-[#020420] dark:text-white font-sans grid min-h-screen overflow-hidden place-content-center text-[#020420] tracking-wide" }, _attrs))} data-v-8851f357><div class="max-w-520px text-center" data-v-8851f357><h1 class="font-semibold leading-none mb-4 sm:text-[110px] tabular-nums text-[80px]" data-v-8851f357>${ssrInterpolate_1(__props.statusCode)}</h1><h2 class="font-semibold mb-2 sm:text-3xl text-2xl" data-v-8851f357>${ssrInterpolate_1(__props.statusMessage)}</h2><p class="mb-4 px-2 text-[#64748B] text-md" data-v-8851f357>${ssrInterpolate_1(__props.description)}</p></div></div>`);
     };
   }
 };
 const _sfc_setup = _sfc_main.setup;
 _sfc_main.setup = (props, ctx) => {
-  const ssrContext = useSSRContext();
+  const ssrContext = vueExports.useSSRContext();
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("../node_modules/nuxt/dist/app/components/error-500.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };

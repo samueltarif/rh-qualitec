@@ -1,9 +1,9 @@
-import { ref, computed, readonly } from 'vue';
+import { v as vueExports } from '../routes/renderer.mjs';
 
 const useJornadas = () => {
-  const jornadas = ref([]);
-  const loading = ref(false);
-  const error = ref("");
+  const jornadas = vueExports.ref([]);
+  const loading = vueExports.ref(false);
+  const error = vueExports.ref("");
   const diasSemana = [
     { id: 1, nome: "Segunda-feira", abrev: "Seg" },
     { id: 2, nome: "Terça-feira", abrev: "Ter" },
@@ -75,7 +75,7 @@ const useJornadas = () => {
   const obterJornadaPadrao = () => {
     return jornadas.value.find((j) => j.padrao && j.ativa);
   };
-  const opcoesJornadas = computed(() => {
+  const opcoesJornadas = vueExports.computed(() => {
     return jornadas.value.filter((j) => j.ativa).map((j) => ({
       value: j.id,
       label: `${j.nome} (${j.horas_semanais}h semanais)`
@@ -131,9 +131,9 @@ const useJornadas = () => {
   };
   return {
     // Estado
-    jornadas: readonly(jornadas),
-    loading: readonly(loading),
-    error: readonly(error),
+    jornadas: vueExports.readonly(jornadas),
+    loading: vueExports.readonly(loading),
+    error: vueExports.readonly(error),
     // Dados auxiliares
     diasSemana,
     opcoesJornadas,

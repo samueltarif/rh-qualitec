@@ -223,7 +223,10 @@ function withBase(input, base) {
   }
   const _base = withoutTrailingSlash(base);
   if (input.startsWith(_base)) {
-    return input;
+    const nextChar = input[_base.length];
+    if (!nextChar || nextChar === "/" || nextChar === "?") {
+      return input;
+    }
   }
   return joinURL(_base, input);
 }
@@ -233,6 +236,10 @@ function withoutBase(input, base) {
   }
   const _base = withoutTrailingSlash(base);
   if (!input.startsWith(_base)) {
+    return input;
+  }
+  const nextChar = input[_base.length];
+  if (nextChar && nextChar !== "/" && nextChar !== "?") {
     return input;
   }
   const trimmed = input.slice(_base.length);
@@ -1058,7 +1065,9 @@ function readRawBody(event, encoding = "utf8") {
     });
     return encoding ? promise2.then((buff) => buff.toString(encoding)) : promise2;
   }
-  if (!Number.parseInt(event.node.req.headers["content-length"] || "") && !String(event.node.req.headers["transfer-encoding"] ?? "").split(",").map((e) => e.trim()).filter(Boolean).includes("chunked")) {
+  if (!Number.parseInt(event.node.req.headers["content-length"] || "") && !/\bchunked\b/i.test(
+    String(event.node.req.headers["transfer-encoding"] ?? "")
+  )) {
     return Promise.resolve(void 0);
   }
   const promise = event.node.req[RawBodySymbol] = new Promise(
@@ -2881,17 +2890,17 @@ function prefixStorage(storage, base) {
   };
   return nsStorage;
 }
-function normalizeKey$1(key) {
+function normalizeKey$2(key) {
   if (!key) {
     return "";
   }
   return key.split("?")[0]?.replace(/[/\\]/g, ":").replace(/:+/g, ":").replace(/^:|:$/g, "") || "";
 }
 function joinKeys(...keys) {
-  return normalizeKey$1(keys.join(":"));
+  return normalizeKey$2(keys.join(":"));
 }
 function normalizeBaseKey(base) {
-  base = normalizeKey$1(base);
+  base = normalizeKey$2(base);
   return base ? base + ":" : "";
 }
 function filterKeyByDepth(key, depth) {
@@ -2917,11 +2926,11 @@ function defineDriver$1(factory) {
   return factory;
 }
 
-const DRIVER_NAME$1 = "memory";
-const memory = defineDriver$1(() => {
+const DRIVER_NAME$3 = "memory";
+const memory$1 = defineDriver$1(() => {
   const data = /* @__PURE__ */ new Map();
   return {
-    name: DRIVER_NAME$1,
+    name: DRIVER_NAME$3,
     getInstance: () => data,
     hasItem(key) {
       return data.has(key);
@@ -2955,7 +2964,7 @@ const memory = defineDriver$1(() => {
 
 function createStorage(options = {}) {
   const context = {
-    mounts: { "": options.driver || memory() },
+    mounts: { "": options.driver || memory$1() },
     mountpoints: [""],
     watching: false,
     watchListeners: [],
@@ -2990,7 +2999,7 @@ function createStorage(options = {}) {
     if (!context.watching) {
       return;
     }
-    key = normalizeKey$1(key);
+    key = normalizeKey$2(key);
     for (const listener of context.watchListeners) {
       listener(event, key);
     }
@@ -3034,7 +3043,7 @@ function createStorage(options = {}) {
     };
     for (const item of items) {
       const isStringItem = typeof item === "string";
-      const key = normalizeKey$1(isStringItem ? item : item.key);
+      const key = normalizeKey$2(isStringItem ? item : item.key);
       const value = isStringItem ? void 0 : item.value;
       const options2 = isStringItem || !item.options ? commonOptions : { ...commonOptions, ...item.options };
       const mount = getMount(key);
@@ -3052,12 +3061,12 @@ function createStorage(options = {}) {
   const storage = {
     // Item
     hasItem(key, opts = {}) {
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       return asyncCall(driver.hasItem, relativeKey, opts);
     },
     getItem(key, opts = {}) {
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       return asyncCall(driver.getItem, relativeKey, opts).then(
         (value) => destr(value)
@@ -3095,7 +3104,7 @@ function createStorage(options = {}) {
       });
     },
     getItemRaw(key, opts = {}) {
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       if (driver.getItemRaw) {
         return asyncCall(driver.getItemRaw, relativeKey, opts);
@@ -3108,7 +3117,7 @@ function createStorage(options = {}) {
       if (value === void 0) {
         return storage.removeItem(key);
       }
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       if (!driver.setItem) {
         return;
@@ -3150,7 +3159,7 @@ function createStorage(options = {}) {
       if (value === void 0) {
         return storage.removeItem(key, opts);
       }
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       if (driver.setItemRaw) {
         await asyncCall(driver.setItemRaw, relativeKey, value, opts);
@@ -3167,7 +3176,7 @@ function createStorage(options = {}) {
       if (typeof opts === "boolean") {
         opts = { removeMeta: opts };
       }
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       if (!driver.removeItem) {
         return;
@@ -3185,7 +3194,7 @@ function createStorage(options = {}) {
       if (typeof opts === "boolean") {
         opts = { nativeOnly: opts };
       }
-      key = normalizeKey$1(key);
+      key = normalizeKey$2(key);
       const { relativeKey, driver } = getMount(key);
       const meta = /* @__PURE__ */ Object.create(null);
       if (driver.getMeta) {
@@ -3232,7 +3241,7 @@ function createStorage(options = {}) {
           opts
         );
         for (const key of rawKeys) {
-          const fullKey = mount.mountpoint + normalizeKey$1(key);
+          const fullKey = mount.mountpoint + normalizeKey$2(key);
           if (!maskedMounts.some((p) => fullKey.startsWith(p))) {
             allKeys.push(fullKey);
           }
@@ -3319,7 +3328,7 @@ function createStorage(options = {}) {
       delete context.mounts[base];
     },
     getMount(key = "") {
-      key = normalizeKey$1(key) + ":";
+      key = normalizeKey$2(key) + ":";
       const m = getMount(key);
       return {
         driver: m.driver,
@@ -3327,7 +3336,7 @@ function createStorage(options = {}) {
       };
     },
     getMounts(base = "", opts = {}) {
-      base = normalizeKey$1(base);
+      base = normalizeKey$2(base);
       const mounts = getMounts(base, opts.parents);
       return mounts.map((m) => ({
         driver: m.driver,
@@ -3358,7 +3367,7 @@ const _assets = {
 
 };
 
-const normalizeKey = function normalizeKey(key) {
+const normalizeKey$1 = function normalizeKey(key) {
   if (!key) {
     return "";
   }
@@ -3370,21 +3379,27 @@ const assets = {
     return Promise.resolve(Object.keys(_assets))
   },
   hasItem (id) {
-    id = normalizeKey(id);
+    id = normalizeKey$1(id);
     return Promise.resolve(id in _assets)
   },
   getItem (id) {
-    id = normalizeKey(id);
+    id = normalizeKey$1(id);
     return Promise.resolve(_assets[id] ? _assets[id].import() : null)
   },
   getMeta (id) {
-    id = normalizeKey(id);
+    id = normalizeKey$1(id);
     return Promise.resolve(_assets[id] ? _assets[id].meta : {})
   }
 };
 
 function defineDriver(factory) {
   return factory;
+}
+function normalizeKey(key, sep = ":") {
+  if (!key) {
+    return "";
+  }
+  return key.replace(/[:/\\]/g, sep).replace(/^[:/\\]|[:/\\]$/g, "");
 }
 function createError(driver, message, opts) {
   const err = new Error(`[unstorage] [${driver}] ${message}`, opts);
@@ -3471,16 +3486,16 @@ async function rmRecursive(dir) {
 }
 
 const PATH_TRAVERSE_RE = /\.\.:|\.\.$/;
-const DRIVER_NAME = "fs-lite";
+const DRIVER_NAME$2 = "fs-lite";
 const unstorage_47drivers_47fs_45lite = defineDriver((opts = {}) => {
   if (!opts.base) {
-    throw createRequiredError(DRIVER_NAME, "base");
+    throw createRequiredError(DRIVER_NAME$2, "base");
   }
   opts.base = resolve(opts.base);
   const r = (key) => {
     if (PATH_TRAVERSE_RE.test(key)) {
       throw createError(
-        DRIVER_NAME,
+        DRIVER_NAME$2,
         `Invalid key: ${JSON.stringify(key)}. It should not contain .. segments`
       );
     }
@@ -3488,7 +3503,7 @@ const unstorage_47drivers_47fs_45lite = defineDriver((opts = {}) => {
     return resolved;
   };
   return {
-    name: DRIVER_NAME,
+    name: DRIVER_NAME$2,
     options: opts,
     flags: {
       maxDepth: true
@@ -3536,11 +3551,126 @@ const unstorage_47drivers_47fs_45lite = defineDriver((opts = {}) => {
   };
 });
 
+const OVERLAY_REMOVED = "__OVERLAY_REMOVED__";
+const DRIVER_NAME$1 = "overlay";
+const overlay = defineDriver((options) => {
+  return {
+    name: DRIVER_NAME$1,
+    options,
+    async hasItem(key, opts) {
+      for (const layer of options.layers) {
+        if (await layer.hasItem(key, opts)) {
+          if (layer === options.layers[0] && await options.layers[0]?.getItem(key) === OVERLAY_REMOVED) {
+            return false;
+          }
+          return true;
+        }
+      }
+      return false;
+    },
+    async getItem(key) {
+      for (const layer of options.layers) {
+        const value = await layer.getItem(key);
+        if (value === OVERLAY_REMOVED) {
+          return null;
+        }
+        if (value !== null) {
+          return value;
+        }
+      }
+      return null;
+    },
+    // TODO: Support native meta
+    // async getMeta (key) {},
+    async setItem(key, value, opts) {
+      await options.layers[0]?.setItem?.(key, value, opts);
+    },
+    async removeItem(key, opts) {
+      await options.layers[0]?.setItem?.(key, OVERLAY_REMOVED, opts);
+    },
+    async getKeys(base, opts) {
+      const allKeys = await Promise.all(
+        options.layers.map(async (layer) => {
+          const keys = await layer.getKeys(base, opts);
+          return keys.map((key) => normalizeKey(key));
+        })
+      );
+      const uniqueKeys = [...new Set(allKeys.flat())];
+      const existingKeys = await Promise.all(
+        uniqueKeys.map(async (key) => {
+          if (await options.layers[0]?.getItem(key) === OVERLAY_REMOVED) {
+            return false;
+          }
+          return key;
+        })
+      );
+      return existingKeys.filter(Boolean);
+    },
+    async dispose() {
+      await Promise.all(
+        options.layers.map(async (layer) => {
+          if (layer.dispose) {
+            await layer.dispose();
+          }
+        })
+      );
+    }
+  };
+});
+
+const DRIVER_NAME = "memory";
+const memory = defineDriver(() => {
+  const data = /* @__PURE__ */ new Map();
+  return {
+    name: DRIVER_NAME,
+    getInstance: () => data,
+    hasItem(key) {
+      return data.has(key);
+    },
+    getItem(key) {
+      return data.get(key) ?? null;
+    },
+    getItemRaw(key) {
+      return data.get(key) ?? null;
+    },
+    setItem(key, value) {
+      data.set(key, value);
+    },
+    setItemRaw(key, value) {
+      data.set(key, value);
+    },
+    removeItem(key) {
+      data.delete(key);
+    },
+    getKeys() {
+      return [...data.keys()];
+    },
+    clear() {
+      data.clear();
+    },
+    dispose() {
+      data.clear();
+    }
+  };
+});
+
 const storage = createStorage({});
 
 storage.mount('/assets', assets);
 
 storage.mount('data', unstorage_47drivers_47fs_45lite({"driver":"fsLite","base":"./.data/kv"}));
+
+const bundledStorage = ["redis"];
+for (const base of bundledStorage) {
+  storage.mount(base, overlay({
+    layers: [
+      memory(),
+      // TODO
+      // prefixStorage(storage, base),
+      prefixStorage(storage, 'assets:nitro:bundled:' + base)
+    ]
+  }));
+}
 
 function useStorage(base = "") {
   return base ? prefixStorage(storage, base) : storage;
@@ -4258,7 +4388,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "af0972f1-7ccd-4188-b86a-f73343a9d697",
+    "buildId": "6040d0fd-33e1-4411-8313-3c7d11338ad7",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4983,5 +5113,5 @@ function defineRenderHandler(render) {
   });
 }
 
-export { $fetch as $, sanitizeStatusCode as A, getContext as B, createHooks as C, executeAsync as D, toRouteMatcher as E, createRouter$1 as F, defu as G, withTrailingSlash as H, withoutTrailingSlash as I, hash$1 as J, useRuntimeConfig as a, getRequestURL as b, createError$1 as c, defineEventHandler as d, getRouterParam as e, getHeader as f, getRouteRulesForPath as g, getQuery as h, setHeader as i, setResponseHeader as j, getHeaders as k, joinRelativeURL as l, getResponseStatusText as m, getResponseStatus as n, defineRenderHandler as o, parseQuery as p, destr as q, readBody as r, setCookie as s, toNodeListener as t, useNitroApp as u, getRouteRules as v, withQuery as w, hasProtocol as x, isScriptProtocol as y, joinURL as z };
+export { $fetch as $, joinURL as A, sanitizeStatusCode as B, getContext as C, createHooks as D, executeAsync as E, toRouteMatcher as F, createRouter$1 as G, defu as H, withTrailingSlash as I, withoutTrailingSlash as J, hash$1 as K, useRuntimeConfig as a, getRequestURL as b, createError$1 as c, defineEventHandler as d, getRouterParam as e, getHeader as f, getRouteRulesForPath as g, getQuery as h, setHeader as i, setResponseHeader as j, getHeaders as k, joinRelativeURL as l, withLeadingSlash as m, defineRenderHandler as n, destr as o, parseQuery as p, getRouteRules as q, readBody as r, setCookie as s, toNodeListener as t, useNitroApp as u, getResponseStatusText as v, withQuery as w, getResponseStatus as x, hasProtocol as y, isScriptProtocol as z };
 //# sourceMappingURL=nitro.mjs.map

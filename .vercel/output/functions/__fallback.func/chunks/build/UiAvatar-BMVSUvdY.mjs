@@ -1,7 +1,6 @@
-import { defineComponent, computed, mergeProps, unref, useSSRContext } from 'vue';
-import { ssrRenderAttrs, ssrRenderAttr, ssrRenderClass, ssrInterpolate } from 'vue/server-renderer';
+import { v as vueExports, d as ssrRenderAttrs_1, f as ssrRenderAttr_1, h as ssrRenderClass_1, g as ssrInterpolate_1 } from '../routes/renderer.mjs';
 
-const _sfc_main = /* @__PURE__ */ defineComponent({
+const _sfc_main = /* @__PURE__ */ vueExports.defineComponent({
   __name: "UiAvatar",
   __ssrInlineRender: true,
   props: {
@@ -13,10 +12,10 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const initials = computed(() => {
+    const initials = vueExports.computed(() => {
       return props.name.split(" ").map((n) => n.charAt(0)).slice(0, 2).join("").toUpperCase();
     });
-    const sizeClasses = computed(() => {
+    const sizeClasses = vueExports.computed(() => {
       const sizes = {
         sm: "w-10 h-10",
         md: "w-12 h-12",
@@ -25,7 +24,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       };
       return sizes[props.size];
     });
-    const textSizeClass = computed(() => {
+    const textSizeClass = vueExports.computed(() => {
       const sizes = {
         sm: "text-sm",
         md: "text-lg",
@@ -34,7 +33,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       };
       return sizes[props.size];
     });
-    const colorClasses = computed(() => {
+    const colorClasses = vueExports.computed(() => {
       if (props.avatarType) {
         return "bg-gray-100";
       }
@@ -122,19 +121,19 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       return avatarMap[avatarType] || "👤";
     };
     return (_ctx, _push, _parent, _attrs) => {
-      _push(`<div${ssrRenderAttrs(mergeProps({
+      _push(`<div${ssrRenderAttrs_1(vueExports.mergeProps({
         class: [
           "rounded-xl flex items-center justify-center font-bold",
-          unref(sizeClasses),
-          unref(colorClasses)
+          vueExports.unref(sizeClasses),
+          vueExports.unref(colorClasses)
         ]
       }, _attrs))}>`);
       if (__props.src) {
-        _push(`<img${ssrRenderAttr("src", __props.src)}${ssrRenderAttr("alt", __props.name)} class="w-full h-full object-cover rounded-xl">`);
+        _push(`<img${ssrRenderAttr_1("src", __props.src)}${ssrRenderAttr_1("alt", __props.name)} class="w-full h-full object-cover rounded-xl">`);
       } else if (__props.avatarType) {
-        _push(`<div class="${ssrRenderClass(unref(textSizeClass))}">${ssrInterpolate(getAvatarEmoji(__props.avatarType))}</div>`);
+        _push(`<div class="${ssrRenderClass_1(vueExports.unref(textSizeClass))}">${ssrInterpolate_1(getAvatarEmoji(__props.avatarType))}</div>`);
       } else {
-        _push(`<span class="${ssrRenderClass(unref(textSizeClass))}">${ssrInterpolate(unref(initials))}</span>`);
+        _push(`<span class="${ssrRenderClass_1(vueExports.unref(textSizeClass))}">${ssrInterpolate_1(vueExports.unref(initials))}</span>`);
       }
       _push(`</div>`);
     };
@@ -142,7 +141,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
 });
 const _sfc_setup = _sfc_main.setup;
 _sfc_main.setup = (props, ctx) => {
-  const ssrContext = useSSRContext();
+  const ssrContext = vueExports.useSSRContext();
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("components/ui/UiAvatar.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };

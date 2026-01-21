@@ -1,7 +1,6 @@
-import { defineComponent, computed, mergeProps, unref, useSSRContext } from 'vue';
-import { ssrRenderAttrs, ssrInterpolate, ssrRenderSlot } from 'vue/server-renderer';
+import { v as vueExports, d as ssrRenderAttrs_1, g as ssrInterpolate_1, j as ssrRenderSlot_1 } from '../routes/renderer.mjs';
 
-const _sfc_main = /* @__PURE__ */ defineComponent({
+const _sfc_main = /* @__PURE__ */ vueExports.defineComponent({
   __name: "UiButton",
   __ssrInlineRender: true,
   props: {
@@ -14,7 +13,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const sizeClasses = computed(() => {
+    const sizeClasses = vueExports.computed(() => {
       const sizes = {
         sm: "px-3 py-2 text-sm",
         md: "px-4 py-3 text-base",
@@ -22,7 +21,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       };
       return sizes[props.size];
     });
-    const variantClasses = computed(() => {
+    const variantClasses = vueExports.computed(() => {
       const variants = {
         primary: "text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-200",
         secondary: "text-gray-600 bg-gray-100 hover:bg-gray-200 focus:ring-gray-200",
@@ -33,14 +32,14 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       return variants[props.variant];
     });
     return (_ctx, _push, _parent, _attrs) => {
-      _push(`<button${ssrRenderAttrs(mergeProps({
+      _push(`<button${ssrRenderAttrs_1(vueExports.mergeProps({
         type: __props.type,
         disabled: __props.disabled || __props.loading,
         class: [
           "inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all",
           "focus:ring-4 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
-          unref(sizeClasses),
-          unref(variantClasses)
+          vueExports.unref(sizeClasses),
+          vueExports.unref(variantClasses)
         ]
       }, _attrs))}>`);
       if (__props.loading) {
@@ -49,18 +48,18 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
         _push(`<!---->`);
       }
       if (__props.icon && !__props.loading) {
-        _push(`<span class="text-lg">${ssrInterpolate(__props.icon)}</span>`);
+        _push(`<span class="text-lg">${ssrInterpolate_1(__props.icon)}</span>`);
       } else {
         _push(`<!---->`);
       }
-      ssrRenderSlot(_ctx.$slots, "default", {}, null, _push, _parent);
+      ssrRenderSlot_1(_ctx.$slots, "default", {}, null, _push, _parent);
       _push(`</button>`);
     };
   }
 });
 const _sfc_setup = _sfc_main.setup;
 _sfc_main.setup = (props, ctx) => {
-  const ssrContext = useSSRContext();
+  const ssrContext = vueExports.useSSRContext();
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("components/ui/UiButton.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };

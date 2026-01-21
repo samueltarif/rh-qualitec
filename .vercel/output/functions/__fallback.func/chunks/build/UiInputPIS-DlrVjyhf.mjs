@@ -1,7 +1,6 @@
-import { defineComponent, computed, unref, useSSRContext } from 'vue';
-import { ssrRenderAttrs, ssrRenderAttr, ssrInterpolate, ssrRenderClass, ssrIncludeBooleanAttr } from 'vue/server-renderer';
+import { v as vueExports, d as ssrRenderAttrs_1, f as ssrRenderAttr_1, g as ssrInterpolate_1, h as ssrRenderClass_1, i as ssrIncludeBooleanAttr } from '../routes/renderer.mjs';
 
-const _sfc_main = /* @__PURE__ */ defineComponent({
+const _sfc_main = /* @__PURE__ */ vueExports.defineComponent({
   __name: "UiInputPIS",
   __ssrInlineRender: true,
   props: {
@@ -15,8 +14,8 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
   emits: ["update:modelValue", "blur"],
   setup(__props, { emit: __emit }) {
     const props = __props;
-    const id = computed(() => `pis-${Math.random().toString(36).substr(2, 9)}`);
-    const displayValue = computed(() => {
+    const id = vueExports.computed(() => `pis-${Math.random().toString(36).substr(2, 9)}`);
+    const displayValue = vueExports.computed(() => {
       return formatarPIS(props.modelValue);
     });
     const formatarPIS = (valor) => {
@@ -33,9 +32,9 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       }
     };
     return (_ctx, _push, _parent, _attrs) => {
-      _push(`<div${ssrRenderAttrs(_attrs)}>`);
+      _push(`<div${ssrRenderAttrs_1(_attrs)}>`);
       if (__props.label) {
-        _push(`<label${ssrRenderAttr("for", unref(id))} class="block text-sm font-medium text-gray-600 mb-1">${ssrInterpolate(__props.label)} `);
+        _push(`<label${ssrRenderAttr_1("for", vueExports.unref(id))} class="block text-sm font-medium text-gray-600 mb-1">${ssrInterpolate_1(__props.label)} `);
         if (__props.required) {
           _push(`<span class="text-red-500">*</span>`);
         } else {
@@ -45,12 +44,12 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       } else {
         _push(`<!---->`);
       }
-      _push(`<input${ssrRenderAttr("id", unref(id))} type="text"${ssrRenderAttr("value", unref(displayValue))}${ssrRenderAttr("placeholder", __props.placeholder)}${ssrIncludeBooleanAttr(__props.disabled) ? " disabled" : ""}${ssrIncludeBooleanAttr(__props.required) ? " required" : ""} class="${ssrRenderClass([
+      _push(`<input${ssrRenderAttr_1("id", vueExports.unref(id))} type="text"${ssrRenderAttr_1("value", vueExports.unref(displayValue))}${ssrRenderAttr_1("placeholder", __props.placeholder)}${ssrIncludeBooleanAttr(__props.disabled) ? " disabled" : ""}${ssrIncludeBooleanAttr(__props.required) ? " required" : ""} class="${ssrRenderClass_1([
         "w-full px-4 py-3 text-lg border-2 rounded-xl outline-none transition-colors",
         __props.disabled ? "border-gray-100 bg-gray-50 text-gray-500" : "border-gray-200 focus:border-primary-500"
       ])}" maxlength="14">`);
       if (__props.error) {
-        _push(`<p class="mt-1 text-sm text-red-600">${ssrInterpolate(__props.error)}</p>`);
+        _push(`<p class="mt-1 text-sm text-red-600">${ssrInterpolate_1(__props.error)}</p>`);
       } else {
         _push(`<!---->`);
       }
@@ -60,7 +59,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
 });
 const _sfc_setup = _sfc_main.setup;
 _sfc_main.setup = (props, ctx) => {
-  const ssrContext = useSSRContext();
+  const ssrContext = vueExports.useSSRContext();
   (ssrContext.modules || (ssrContext.modules = /* @__PURE__ */ new Set())).add("components/ui/UiInputPIS.vue");
   return _sfc_setup ? _sfc_setup(props, ctx) : void 0;
 };
