@@ -51,11 +51,14 @@ export default defineEventHandler(async (event) => {
       throw error
     }
 
-    // Buscar contadores
-    const { data: contadores } = await supabase
-      .rpc('contar_notificacoes_nao_lidas')
+    // Buscar contadores diretamente
+    const { data: contadoresData } = await supabase
+      .from('notificacoes')
+      .select('id', { count: 'exact' })
+      .eq('lida', false)
+      .or('data_expiracao.is.null,data_expiracao.gt.' + new Date().toISOString())
 
-    const totalNaoLidas = contadores || 0
+    const totalNaoLidas = contadoresData?.length || 0
 
     console.log(`✅ ${notificacoes?.length || 0} notificação(ões) encontrada(s)`)
     console.log(`📊 Total não lidas: ${totalNaoLidas}`)

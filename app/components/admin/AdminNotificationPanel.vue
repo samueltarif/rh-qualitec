@@ -42,7 +42,13 @@
       </div>
 
       <!-- Botão Ver Todas -->
-      <div class="p-4 border-t border-gray-200 bg-gray-50">
+      <div class="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
+        <button 
+          @click="refresh()"
+          class="w-full text-sm text-gray-600 hover:text-gray-700 font-medium mb-2"
+        >
+          🔄 Atualizar Notificações
+        </button>
         <button 
           @click="verTodasNotificacoes"
           class="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -65,34 +71,53 @@ interface Notificacao {
 }
 
 // Buscar notificações reais da API
-const { data: response, pending } = await useLazyFetch('/api/notificacoes', {
-  query: { limit: 5, admin: true },
-  default: () => ({ data: [], success: false })
+const { data: response, pending, refresh } = await useLazyFetch('/api/notificacoes', {
+  query: { limite: 5, admin: true },
+  default: () => ({ notificacoes: [], success: false }),
+  server: false, // Forçar execução no cliente
+  key: 'admin-notifications' // Chave única para cache
 })
 
 const notificacoes = computed(() => {
-  return response.value?.success ? response.value.data : []
+  console.log('🔔 [DEBUG] Response:', response.value)
+  const result = response.value?.success ? response.value.notificacoes : []
+  console.log('🔔 [DEBUG] Notificações processadas:', result)
+  return result
 })
 
 // Funções auxiliares
 const getNotificationIcon = (tipo: string) => {
   const icons = {
+    info: 'ℹ️',
+    success: '✅',
+    warning: '⚠️',
+    error: '🚨',
     sistema: '⚙️',
-    adiantamento: '💰',
-    holerite: '📄',
-    aniversario: '🎂',
-    info: 'ℹ️'
+    login: '🔐',
+    alteracao_dados: '✏️',
+    novo_funcionario: '👤',
+    geracao_holerites: '💰',
+    envio_email: '📧',
+    login_falhado: '🚨',
+    erro_sistema: '💥'
   }
   return icons[tipo as keyof typeof icons] || 'ℹ️'
 }
 
 const getNotificationStyle = (tipo: string) => {
   const styles = {
-    sistema: { bg: 'bg-yellow-100', text: 'text-yellow-600', dot: 'bg-yellow-500' },
-    adiantamento: { bg: 'bg-green-100', text: 'text-green-600', dot: 'bg-green-500' },
-    holerite: { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-500' },
-    aniversario: { bg: 'bg-pink-100', text: 'text-pink-600', dot: 'bg-pink-500' },
-    info: { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-500' }
+    info: { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-500' },
+    success: { bg: 'bg-green-100', text: 'text-green-600', dot: 'bg-green-500' },
+    warning: { bg: 'bg-yellow-100', text: 'text-yellow-600', dot: 'bg-yellow-500' },
+    error: { bg: 'bg-red-100', text: 'text-red-600', dot: 'bg-red-500' },
+    sistema: { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-500' },
+    login: { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-500' },
+    alteracao_dados: { bg: 'bg-yellow-100', text: 'text-yellow-600', dot: 'bg-yellow-500' },
+    novo_funcionario: { bg: 'bg-green-100', text: 'text-green-600', dot: 'bg-green-500' },
+    geracao_holerites: { bg: 'bg-green-100', text: 'text-green-600', dot: 'bg-green-500' },
+    envio_email: { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-500' },
+    login_falhado: { bg: 'bg-red-100', text: 'text-red-600', dot: 'bg-red-500' },
+    erro_sistema: { bg: 'bg-red-100', text: 'text-red-600', dot: 'bg-red-500' }
   }
   return styles[tipo as keyof typeof styles] || styles.info
 }
@@ -117,4 +142,15 @@ const verTodasNotificacoes = () => {
   // Navegar para página de notificações ou abrir modal
   navigateTo('/admin/notificacoes')
 }
+
+// Auto-refresh a cada 30 segundos
+onMounted(() => {
+  const interval = setInterval(() => {
+    refresh()
+  }, 30000) // 30 segundos
+  
+  onUnmounted(() => {
+    clearInterval(interval)
+  })
+})
 </script>

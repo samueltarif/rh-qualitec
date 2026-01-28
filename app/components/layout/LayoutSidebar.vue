@@ -71,7 +71,7 @@
       </div>
       
       <div class="flex-1 overflow-y-auto" style="height: calc(100vh - 80px);">
-        <AdminNotificationPanel />
+        <AdminNotificationPanelSimple />
       </div>
     </div>
 
