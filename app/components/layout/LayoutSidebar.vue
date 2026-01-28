@@ -38,13 +38,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM11 19H6.5A2.5 2.5 0 014 16.5v-9A2.5 2.5 0 016.5 5h11A2.5 2.5 0 0120 7.5V11"/>
           </svg>
           <span>Notificações</span>
-          <!-- Badge de notificações -->
-          <span 
-            v-if="unreadCount > 0"
-            class="absolute top-2 left-7 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium"
-          >
-            {{ unreadCount > 9 ? '9+' : unreadCount }}
-          </span>
+          <!-- Badge removido - será mostrado apenas quando houver notificações reais -->
         </button>
         
         <LayoutNavLink to="/admin/funcionarios" icon="users">Funcionários</LayoutNavLink>
@@ -59,14 +53,15 @@
     <!-- Painel de Notificações (Desktop) -->
     <div 
       v-if="showNotifications && isAdmin"
-      class="absolute top-0 left-72 w-80 h-full bg-white border-r border-gray-200 shadow-lg z-40"
+      class="fixed top-0 left-72 w-80 h-full bg-white border-r border-gray-200 shadow-xl overflow-hidden"
+      style="z-index: 9999;"
     >
-      <div class="p-4 border-b border-gray-200">
+      <div class="p-4 border-b border-gray-200 bg-white">
         <div class="flex items-center justify-between">
           <h3 class="font-semibold text-gray-900">📢 Notificações do Sistema</h3>
           <button 
             @click="showNotifications = false"
-            class="p-1 rounded-lg hover:bg-gray-100"
+            class="p-1 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -75,10 +70,18 @@
         </div>
       </div>
       
-      <div class="h-full overflow-y-auto pb-20">
+      <div class="flex-1 overflow-y-auto" style="height: calc(100vh - 80px);">
         <AdminNotificationPanel />
       </div>
     </div>
+
+    <!-- Overlay para fechar notificações ao clicar fora -->
+    <div 
+      v-if="showNotifications && isAdmin"
+      @click="showNotifications = false"
+      class="fixed inset-0 bg-black bg-opacity-25"
+      style="z-index: 9998;"
+    ></div>
 
     <!-- Usuário Logado -->
     <div class="p-4 border-t border-gray-200">
@@ -116,7 +119,7 @@ const { logout } = useAuth()
 
 // Estado das notificações
 const showNotifications = ref(false)
-const unreadCount = ref(3) // Isso viria de uma API real
+// unreadCount removido - será obtido da API real quando implementado
 
 const toggleNotifications = () => {
   showNotifications.value = !showNotifications.value

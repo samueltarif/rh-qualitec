@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { calcularINSS2026 } from '../../utils/inss2026'
 
 // ========================================
 // FUNÇÕES AUXILIARES PARA CÁLCULO DE DATAS
@@ -417,6 +418,7 @@ export default defineEventHandler(async (event) => {
           // Calcular INSS (apenas para CLT)
           let inss = 0
           let aliquotaEfetiva = 0
+          let aliquotaFaixa = 0
           
           const tipoContrato = (func as any).tipo_contrato || 'CLT'
           
@@ -424,28 +426,19 @@ export default defineEventHandler(async (event) => {
             // Funcionários PJ não têm desconto de INSS
             inss = 0
             aliquotaEfetiva = 0
+            aliquotaFaixa = 0
             console.log(`💼 Funcionário PJ - Sem desconto de INSS`)
           } else {
-            // Cálculo normal do INSS para CLT e outros contratos
-            if (salarioBase <= 1518.00) {
-              inss = salarioBase * 0.075
-              aliquotaEfetiva = 7.5
-            } else if (salarioBase <= 2793.88) {
-              inss = 1518.00 * 0.075 + (salarioBase - 1518.00) * 0.09
-              aliquotaEfetiva = (inss / salarioBase) * 100
-            } else if (salarioBase <= 4190.83) {
-              inss = 1518.00 * 0.075 + (2793.88 - 1518.00) * 0.09 + (salarioBase - 2793.88) * 0.12
-              aliquotaEfetiva = (inss / salarioBase) * 100
-            } else if (salarioBase <= 8157.41) {
-              inss = 1518.00 * 0.075 + (2793.88 - 1518.00) * 0.09 + (4190.83 - 2793.88) * 0.12 + (salarioBase - 4190.83) * 0.14
-              aliquotaEfetiva = (inss / salarioBase) * 100
-            } else {
-              inss = 1518.00 * 0.075 + (2793.88 - 1518.00) * 0.09 + (4190.83 - 2793.88) * 0.12 + (8157.41 - 4190.83) * 0.14
-              aliquotaEfetiva = (inss / salarioBase) * 100
-            }
+            // Cálculo INSS 2026 usando função atualizada
+            const calculoINSS = calcularINSS2026(salarioBase)
+            inss = calculoINSS.valor
+            aliquotaEfetiva = calculoINSS.aliquotaEfetiva
+            aliquotaFaixa = calculoINSS.aliquotaFaixa
             
-            inss = Math.round(inss * 100) / 100
-            aliquotaEfetiva = Math.round(aliquotaEfetiva * 100) / 100
+            console.log(`📊 INSS 2026 - Salário: R$ ${salarioBase.toFixed(2)}`)
+            console.log(`   Faixa aplicada: ${calculoINSS.faixaAplicada}`)
+            console.log(`   Base de cálculo: R$ ${calculoINSS.baseCalculo.toFixed(2)}`)
+            console.log(`   INSS: R$ ${inss.toFixed(2)} (Efetiva: ${aliquotaEfetiva.toFixed(2)}% | Faixa: ${aliquotaFaixa}%)`)
           }
           
           // Calcular IRRF conforme Lei 15.270/2025 com todas as deduções (apenas para CLT)
@@ -543,7 +536,7 @@ export default defineEventHandler(async (event) => {
             
             inss: inss,
             base_inss: salarioBase,
-            aliquota_inss: aliquotaEfetiva,
+            aliquota_inss: aliquotaFaixa,
             irrf: irrf,
             base_irrf: baseIRRF,
             aliquota_irrf: aliquotaIRRF,

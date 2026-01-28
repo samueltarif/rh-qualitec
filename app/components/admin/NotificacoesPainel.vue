@@ -65,7 +65,7 @@
           v-for="notificacao in notificacoes" 
           :key="notificacao.id"
           :class="[
-            'p-4 hover:bg-gray-50 transition-colors cursor-pointer',
+            'group p-4 hover:bg-gray-50 transition-colors cursor-pointer',
             !notificacao.lida ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
           ]"
           @click="marcarComoLida(notificacao)"
@@ -102,13 +102,26 @@
                   </div>
                 </div>
                 
-                <!-- Status e data -->
+                <!-- Status, data e ações -->
                 <div class="flex-shrink-0 ml-3 text-right">
-                  <div v-if="notificacao.importante" class="mb-1">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      ⚠️ Importante
-                    </span>
+                  <div class="flex items-center gap-2 mb-1">
+                    <!-- Botão de excluir -->
+                    <button
+                      @click.stop="excluirNotificacao(notificacao)"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded text-red-600 hover:text-red-800"
+                      title="Excluir notificação"
+                    >
+                      <span class="text-xs">🗑️</span>
+                    </button>
+                    
+                    <!-- Badge importante -->
+                    <div v-if="notificacao.importante">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        ⚠️ Importante
+                      </span>
+                    </div>
                   </div>
+                  
                   <p class="text-xs text-gray-500">
                     {{ formatarDataRelativa(notificacao.data_criacao) }}
                   </p>
@@ -145,6 +158,13 @@
             class="text-blue-600 hover:text-blue-800"
           >
             Marcar todas como lidas
+          </button>
+          <button 
+            v-if="notificacoes.some(n => n.lida)"
+            @click="limparNotificacoesLidas"
+            class="text-red-600 hover:text-red-800"
+          >
+            Limpar lidas
           </button>
         </div>
       </div>
@@ -241,6 +261,61 @@ const verificarAniversariantes = async () => {
     console.error('Erro ao verificar aniversariantes:', error)
   } finally {
     loading.value = false
+  }
+}
+
+const limparNotificacoesLidas = async () => {
+  const notificacoesLidas = notificacoes.value.filter(n => n.lida)
+  
+  if (notificacoesLidas.length === 0) return
+  
+  if (!confirm(`Tem certeza que deseja excluir ${notificacoesLidas.length} notificação(ões) lida(s)?`)) {
+    return
+  }
+  
+  try {
+    // Excluir todas as notificações lidas
+    for (const notificacao of notificacoesLidas) {
+      await $fetch(`/api/notificacoes/${notificacao.id}`, {
+        method: 'DELETE'
+      })
+    }
+    
+    // Remover da lista local
+    notificacoes.value = notificacoes.value.filter(n => !n.lida)
+    
+    console.log(`${notificacoesLidas.length} notificação(ões) lida(s) excluída(s)`)
+  } catch (error) {
+    console.error('Erro ao limpar notificações lidas:', error)
+    alert('Erro ao limpar notificações. Tente novamente.')
+  }
+}
+
+const excluirNotificacao = async (notificacao: Notificacao) => {
+  if (!confirm(`Tem certeza que deseja excluir a notificação "${notificacao.titulo}"?`)) {
+    return
+  }
+  
+  try {
+    await $fetch(`/api/notificacoes/${notificacao.id}`, {
+      method: 'DELETE'
+    })
+    
+    // Remover da lista local
+    const index = notificacoes.value.findIndex(n => n.id === notificacao.id)
+    if (index > -1) {
+      notificacoes.value.splice(index, 1)
+      
+      // Atualizar contador se era não lida
+      if (!notificacao.lida) {
+        totalNaoLidas.value = Math.max(0, totalNaoLidas.value - 1)
+      }
+    }
+    
+    console.log('Notificação excluída com sucesso')
+  } catch (error) {
+    console.error('Erro ao excluir notificação:', error)
+    alert('Erro ao excluir notificação. Tente novamente.')
   }
 }
 
