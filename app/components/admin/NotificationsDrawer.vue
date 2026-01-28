@@ -1,41 +1,208 @@
 <template>
-  <!-- Teste sem Teleport primeiro -->
-  <div v-if="isOpen" class="fixed inset-0 z-[9999] bg-red-500 bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-xl">
-      <h2 class="text-xl font-bold mb-4">🔔 Drawer Funcionando!</h2>
-      <p>isOpen: {{ isOpen }}</p>
-      <button @click="closeDrawer" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-        Fechar
-      </button>
+  <!-- Drawer de Notificações Simplificado -->
+  <div v-if="isOpen" class="fixed inset-0 z-[9999]">
+    <!-- Overlay -->
+    <div 
+      class="absolute inset-0 bg-black bg-opacity-50" 
+      @click="closeDrawer"
+    ></div>
+    
+    <!-- Drawer Panel -->
+    <div class="absolute right-0 top-0 h-full w-96 bg-white shadow-xl flex flex-col">
+      <!-- Header -->
+      <div class="p-4 border-b border-gray-200 bg-white">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <span class="text-blue-600 text-lg">🔔</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Notificações</h3>
+              <p class="text-sm text-gray-500">
+                {{ totalNotificacoes }} notificação{{ totalNotificacoes !== 1 ? 'ões' : '' }}
+                {{ totalNaoLidas > 0 ? `(${totalNaoLidas} não lida${totalNaoLidas !== 1 ? 's' : ''})` : '' }}
+              </p>
+            </div>
+          </div>
+          <button 
+            @click="closeDrawer"
+            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Filtros e Ações -->
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <select 
+            v-model="filtroTipo" 
+            @change="aplicarFiltros"
+            class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option value="">Todos os tipos</option>
+            <option value="info">Informações</option>
+            <option value="success">Sucessos</option>
+            <option value="warning">Avisos</option>
+            <option value="error">Erros</option>
+          </select>
+          
+          <select 
+            v-model="filtroOrigem" 
+            @change="aplicarFiltros"
+            class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option value="">Todas as origens</option>
+            <option value="login">Login</option>
+            <option value="alteracao_dados">Alteração de Dados</option>
+            <option value="geracao_holerites">Holerites</option>
+            <option value="visualizacao_holerite">Visualização</option>
+            <option value="download_holerite">Downloads</option>
+            <option value="novo_funcionario">Novos Funcionários</option>
+          </select>
+          
+          <button 
+            v-if="totalNaoLidas > 0"
+            @click="marcarTodasComoLidas"
+            :disabled="isMarkingAllRead"
+            class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            {{ isMarkingAllRead ? 'Marcando...' : 'Marcar todas como lidas' }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Content - Scrollável -->
+      <div class="flex-1 overflow-y-auto overscroll-contain">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="p-8 text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="text-sm text-gray-500 mt-3">Carregando notificações...</p>
+        </div>
+        
+        <!-- Empty State -->
+        <div v-else-if="!notificacoesFiltradas || notificacoesFiltradas.length === 0" class="p-8 text-center">
+          <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-gray-400 text-2xl">🔔</span>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">
+            {{ filtroTipo || filtroOrigem ? 'Nenhuma notificação encontrada' : 'Nenhuma notificação' }}
+          </h3>
+          <p class="text-sm text-gray-500">
+            {{ filtroTipo || filtroOrigem ? 'Tente ajustar os filtros acima' : 'Não há notificações no momento' }}
+          </p>
+        </div>
+        
+        <!-- Notificações -->
+        <div v-else class="divide-y divide-gray-100">
+          <div 
+            v-for="notificacao in notificacoesFiltradas" 
+            :key="notificacao.id"
+            class="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+            :class="{ 'bg-blue-50': !notificacao.lida }"
+            @click="marcarComoLida(notificacao)"
+          >
+            <div class="flex items-start gap-3">
+              <!-- Ícone -->
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                :class="getNotificationStyle(notificacao.tipo).bg"
+              >
+                <span :class="getNotificationStyle(notificacao.tipo).text" class="text-base">
+                  {{ getNotificationIcon(notificacao.tipo) }}
+                </span>
+              </div>
+              
+              <!-- Conteúdo -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                      {{ notificacao.titulo }}
+                    </h4>
+                    <p class="text-xs text-gray-700 mb-2 leading-relaxed line-clamp-3">
+                      {{ notificacao.mensagem }}
+                    </p>
+                    
+                    <!-- Detalhes das alterações (se disponível) -->
+                    <div v-if="notificacao.dados?.alteracoes_detalhadas && notificacao.dados.alteracoes_detalhadas.length > 0" class="mt-2 p-2 bg-gray-50 rounded-lg">
+                      <h5 class="text-xs font-semibold text-gray-700 mb-1">Alterações:</h5>
+                      <ul class="text-xs text-gray-600 space-y-0.5">
+                        <li v-for="(alteracao, index) in notificacao.dados.alteracoes_detalhadas.slice(0, 3)" :key="index" class="flex items-start gap-1">
+                          <span class="text-blue-500 mt-0.5 text-xs">•</span>
+                          <span class="line-clamp-1">{{ alteracao }}</span>
+                        </li>
+                        <li v-if="notificacao.dados.alteracoes_detalhadas.length > 3" class="text-xs text-gray-500 italic">
+                          +{{ notificacao.dados.alteracoes_detalhadas.length - 3 }} mais...
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <!-- Metadados -->
+                    <div class="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                      <span class="flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ formatarDataCompleta(notificacao.created_at) }}
+                      </span>
+                      
+                      <span v-if="notificacao.origem" class="flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                        {{ formatarOrigem(notificacao.origem) }}
+                      </span>
+                      
+                      <span v-if="notificacao.importante" class="flex items-center gap-1 text-red-600">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        Importante
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- Status e Ações -->
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <div v-if="!notificacao.lida" 
+                         class="w-2 h-2 rounded-full"
+                         :class="getNotificationStyle(notificacao.tipo).dot">
+                    </div>
+                    
+                    <button 
+                      v-if="notificacao.acao_url"
+                      @click.stop="navegarPara(notificacao.acao_url)"
+                      class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Ver
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Footer - Fixo no fundo -->
+      <div class="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50">
+        <div class="flex items-center justify-between text-sm text-gray-500">
+          <span>
+            {{ notificacoesFiltradas?.length || 0 }} de {{ totalNotificacoes }} notificações
+          </span>
+          <button 
+            @click="refreshNotifications"
+            :disabled="isLoading"
+            class="text-blue-600 hover:text-blue-700 disabled:opacity-50 focus:outline-none focus:underline"
+          >
+            {{ isLoading ? 'Carregando...' : 'Atualizar' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-  
-  <!-- Teleport para fora da árvore DOM limitada -->
-  <!-- <ClientOnly>
-    <Teleport to="#teleports">
-      <div v-if="isOpen" class="notifications-drawer-container">
-        <!-- Debug: Mostrar que o drawer está sendo renderizado -->
-        <!-- <div class="fixed top-4 left-4 bg-red-500 text-white p-4 rounded z-[9999] text-lg font-bold shadow-lg">
-          🔔 DRAWER ABERTO - isOpen: {{ isOpen }}
-        </div> -->
-      
-      <!-- Overlay - z-[1000] -->
-      <div 
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 z-[1000]"
-        :class="{ 'opacity-100': isOpen, 'opacity-0': !isOpen }"
-        @click="closeDrawer"
-        aria-hidden="true"
-      ></div>
-      
-      <!-- Drawer Panel - z-[1010] -->
-      <div 
-        class="fixed right-0 top-0 h-dvh w-[420px] max-w-[90vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out z-[1010] flex flex-col"
-        :class="{ 'translate-x-0': isOpen, 'translate-x-full': !isOpen }"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="headerId"
-        @click.stop
-      >
         <!-- Header - Fixo no topo -->
         <div class="flex-shrink-0 p-6 border-b border-gray-200 bg-white">
           <div class="flex items-center justify-between">
@@ -260,7 +427,7 @@ const isLoading = ref(false)
 const isMarkingAllRead = ref(false)
 
 // IDs únicos para acessibilidade
-const headerId = `notifications-header-${Math.random().toString(36).substr(2, 9)}`
+const headerId = `notifications-header-${Math.random().toString(36).substring(2, 9)}`
 
 // Integração com o sistema de contagem
 const { refresh: refreshCount, decrementCount } = useNotificationCount()
