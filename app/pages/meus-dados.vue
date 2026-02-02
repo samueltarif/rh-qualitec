@@ -523,7 +523,8 @@ const empresasMap = ref<Record<string, string>>({})
 // Função para formatar data
 const formatarData = (data: string) => {
   if (!data) return '--'
-  const date = new Date(data)
+  // CORREÇÃO: Adicionar T00:00:00 para evitar problemas de timezone
+  const date = new Date(data + 'T00:00:00')
   return date.toLocaleDateString('pt-BR')
 }
 
