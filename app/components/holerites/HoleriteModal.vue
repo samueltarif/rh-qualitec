@@ -17,7 +17,7 @@
           {{ holerite?.funcionario?.empresa || 'Empresa' }}
         </p>
         <p class="text-sm text-gray-400 mt-1">
-          Período: {{ formatarPeriodo(holerite?.periodo_inicio, holerite?.periodo_fim) }}
+          Período: {{ formatarPeriodoReferencia(holerite?.periodo_inicio, holerite?.periodo_fim) }}
         </p>
       </div>
 
@@ -166,6 +166,33 @@ const formatarPeriodo = (inicio: string | undefined, fim: string | undefined) =>
     const dataInicio = new Date(inicio).toLocaleDateString('pt-BR')
     const dataFim = new Date(fim).toLocaleDateString('pt-BR')
     return `${dataInicio} - ${dataFim}`
+  } catch (error) {
+    return 'Período inválido'
+  }
+}
+
+const formatarPeriodoReferencia = (inicio: string | undefined, fim: string | undefined) => {
+  if (!inicio || !fim) return 'Período não definido'
+  
+  try {
+    const dataInicio = new Date(inicio)
+    const dataFim = new Date(fim)
+    
+    // Verificar se é adiantamento (período do dia 15 ao último dia do mês)
+    const diaInicio = dataInicio.getDate()
+    const isAdiantamento = diaInicio === 15
+    
+    if (isAdiantamento) {
+      // Para adiantamentos, mostrar o período completo
+      const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR')
+      const dataFimFormatada = dataFim.toLocaleDateString('pt-BR')
+      return `${dataInicioFormatada} - ${dataFimFormatada}`
+    } else {
+      // Para folha mensal, mostrar o mês vigente (baseado no período fim)
+      // O período fim representa o último dia do mês de referência
+      const mesNome = dataFim.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      return mesNome.charAt(0).toUpperCase() + mesNome.slice(1) // Capitalizar primeira letra
+    }
   } catch (error) {
     return 'Período inválido'
   }

@@ -125,7 +125,7 @@ describe('Validação de Consistência', () => {
     expect(mesReferencia).toBe(`${anoInicio}-${mesInicio}`)
   })
   
-  it('data_pagamento deve ser no mês seguinte ao periodo_fim para folha mensal', () => {
+  it('data_pagamento deve ser no mesmo mês do periodo_fim para folha mensal (5º dia útil)', () => {
     const resultado = calcularDatasHolerite('mensal')
     
     const [anoFim, mesFim] = resultado.periodo_fim.split('-')
@@ -134,12 +134,12 @@ describe('Validação de Consistência', () => {
     const mesFimNum = parseInt(mesFim, 10)
     const mesPagamentoNum = parseInt(mesPagamento, 10)
     
-    // Pagamento deve ser no mês seguinte (ou janeiro se dezembro)
-    if (mesFimNum === 12) {
-      expect(mesPagamentoNum).toBe(1)
-      expect(parseInt(anoPagamento, 10)).toBe(parseInt(anoFim, 10) + 1)
-    } else {
-      expect(mesPagamentoNum).toBe(mesFimNum + 1)
-    }
+    // CORREÇÃO: Pagamento deve ser no mesmo mês de referência (5º dia útil)
+    expect(mesPagamentoNum).toBe(mesFimNum)
+    expect(anoPagamento).toBe(anoFim)
+    
+    console.log('✅ Teste passou: Data de pagamento no mês de referência')
+    console.log(`   Período: ${resultado.periodo_inicio} a ${resultado.periodo_fim}`)
+    console.log(`   Pagamento: ${resultado.data_pagamento}`)
   })
 })

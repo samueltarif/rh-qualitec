@@ -1,7 +1,9 @@
 export function gerarHoleriteHTML(holerite: any, funcionario: any, empresa: any): string {
-  // Formatar datas
-  const periodoInicio = new Date(holerite.periodo_inicio + 'T00:00:00')
-  const periodoFim = new Date(holerite.periodo_fim + 'T00:00:00')
+  // Formatar datas - CORRIGIDO: Usar split para evitar problemas de timezone
+  const [anoInicio, mesInicio, diaInicioData] = holerite.periodo_inicio.split('-').map(Number)
+  const [anoFim, mesFim, diaFimData] = holerite.periodo_fim.split('-').map(Number)
+  const periodoInicio = new Date(anoInicio, mesInicio - 1, diaInicioData)
+  const periodoFim = new Date(anoFim, mesFim - 1, diaFimData)
   
   // IMPORTANTE: Usar periodo_inicio para extrair o mês de referência
   // O periodo_inicio sempre reflete o primeiro dia do mês da competência

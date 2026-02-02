@@ -153,8 +153,17 @@ export const useHolerites = () => {
   }
 
   // Função para formatar data para exibição
-  const formatarData = (data: Date): string => {
-    return data.toLocaleDateString('pt-BR', {
+  const formatarData = (data: Date | string): string => {
+    let dataObj: Date
+    
+    if (typeof data === 'string') {
+      // Se for string, adicionar T00:00:00 para evitar problemas de timezone
+      dataObj = new Date(data + 'T00:00:00')
+    } else {
+      dataObj = data
+    }
+    
+    return dataObj.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'

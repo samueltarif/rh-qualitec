@@ -38,9 +38,10 @@ export default defineEventHandler(async (event) => {
     const aniversariantesHoje = funcionarios.filter(func => {
       if (!func.data_nascimento) return false
       
-      const dataNascimento = new Date(func.data_nascimento)
-      const diaAniversario = dataNascimento.getDate()
-      const mesAniversario = dataNascimento.getMonth() + 1
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      const [ano, mes, dia] = func.data_nascimento.split('-').map(Number)
+      const diaAniversario = dia
+      const mesAniversario = mes
       
       return diaAniversario === diaHoje && mesAniversario === mesHoje
     })
@@ -61,7 +62,9 @@ export default defineEventHandler(async (event) => {
     // Criar notificação para cada aniversariante
     for (const funcionario of aniversariantesHoje) {
       try {
-        const dataNascimento = new Date(funcionario.data_nascimento)
+        // CORRIGIDO: Usar split para evitar problemas de timezone
+        const [ano, mes, dia] = funcionario.data_nascimento.split('-').map(Number)
+        const dataNascimento = new Date(ano, mes - 1, dia)
         const idade = hoje.getFullYear() - dataNascimento.getFullYear()
         
         // Verificar se já existe notificação de aniversário para este funcionário hoje

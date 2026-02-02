@@ -346,8 +346,11 @@ export async function notificarVisualizacaoHolerite(
     minute: '2-digit'
   })
 
-  const periodoInicio = new Date(holerite.periodo_inicio)
-  const periodoFim = new Date(holerite.periodo_fim)
+  // CORRIGIDO: Usar split para evitar problemas de timezone
+  const [anoInicio, mesInicio, diaInicio] = holerite.periodo_inicio.split('-').map(Number)
+  const [anoFim, mesFim, diaFim] = holerite.periodo_fim.split('-').map(Number)
+  const periodoInicio = new Date(anoInicio, mesInicio - 1, diaInicio)
+  const periodoFim = new Date(anoFim, mesFim - 1, diaFim)
   const mesAno = periodoInicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   
   // Determinar tipo de holerite
@@ -399,8 +402,11 @@ export async function notificarDownloadHolerite(
     minute: '2-digit'
   })
 
-  const periodoInicio = new Date(holerite.periodo_inicio)
-  const periodoFim = new Date(holerite.periodo_fim)
+  // CORRIGIDO: Usar split para evitar problemas de timezone
+  const [anoInicio, mesInicio, diaInicio] = holerite.periodo_inicio.split('-').map(Number)
+  const [anoFim, mesFim, diaFim] = holerite.periodo_fim.split('-').map(Number)
+  const periodoInicio = new Date(anoInicio, mesInicio - 1, diaInicio)
+  const periodoFim = new Date(anoFim, mesFim - 1, diaFim)
   const mesAno = periodoInicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   
   // Determinar tipo de holerite

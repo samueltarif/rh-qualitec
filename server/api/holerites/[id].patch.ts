@@ -44,6 +44,65 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // CORREÇÃO: Recalcular totais se algum valor foi alterado
+    const camposQueAfetamCalculo = [
+      'salario_base', 'bonus', 'horas_extras', 'adicional_noturno', 
+      'adicional_periculosidade', 'adicional_insalubridade', 'comissoes',
+      'inss', 'irrf', 'vale_transporte', 'cesta_basica_desconto', 
+      'plano_saude', 'plano_odontologico', 'adiantamento', 'faltas'
+    ]
+
+    const precisaRecalcular = camposQueAfetamCalculo.some(campo => dadosParaAtualizar[campo] !== undefined)
+
+    if (precisaRecalcular) {
+      // Buscar dados atuais do holerite para calcular totais
+      const { data: holeriteAtual } = await supabase
+        .from('holerites')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (holeriteAtual) {
+        // Aplicar as alterações aos dados atuais
+        const dadosAtualizados = { ...holeriteAtual, ...dadosParaAtualizar }
+
+        // Calcular totais
+        const totalProventos = 
+          Number(dadosAtualizados.salario_base || 0) +
+          Number(dadosAtualizados.bonus || 0) +
+          Number(dadosAtualizados.horas_extras || 0) +
+          Number(dadosAtualizados.adicional_noturno || 0) +
+          Number(dadosAtualizados.adicional_periculosidade || 0) +
+          Number(dadosAtualizados.adicional_insalubridade || 0) +
+          Number(dadosAtualizados.comissoes || 0)
+
+        const totalDescontos = 
+          Number(dadosAtualizados.inss || 0) +
+          Number(dadosAtualizados.irrf || 0) +
+          Number(dadosAtualizados.vale_transporte || 0) +
+          Number(dadosAtualizados.cesta_basica_desconto || 0) +
+          Number(dadosAtualizados.plano_saude || 0) +
+          Number(dadosAtualizados.plano_odontologico || 0) +
+          Number(dadosAtualizados.adiantamento || 0) +
+          Number(dadosAtualizados.faltas || 0)
+
+        const salarioLiquido = totalProventos - totalDescontos
+
+        // Adicionar os totais calculados aos dados para atualizar
+        dadosParaAtualizar.total_proventos = totalProventos
+        dadosParaAtualizar.total_descontos = totalDescontos
+        dadosParaAtualizar.salario_liquido = salarioLiquido
+
+        console.log('🧮 Recalculando totais do holerite:', {
+          id,
+          totalProventos,
+          totalDescontos,
+          salarioLiquido,
+          adiantamento: dadosAtualizados.adiantamento
+        })
+      }
+    }
+
     // @ts-ignore
     const { data, error } = await supabase
       .from('holerites')

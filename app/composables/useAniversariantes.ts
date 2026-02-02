@@ -48,8 +48,9 @@ export const useAniversariantes = () => {
     const diaHoje = hoje.getDate()
     
     return aniversariantes.value.filter(aniversariante => {
-      const dataNascimento = new Date(aniversariante.data_nascimento)
-      return dataNascimento.getDate() === diaHoje
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      const [ano, mes, dia] = aniversariante.data_nascimento.split('-').map(Number)
+      return dia === diaHoje
     })
   }
 
@@ -61,8 +62,9 @@ export const useAniversariantes = () => {
     const anoAtual = hoje.getFullYear()
     
     return aniversariantes.value.filter(aniversariante => {
-      const dataNascimento = new Date(aniversariante.data_nascimento)
-      const diaNascimento = dataNascimento.getDate()
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      const [ano, mes, dia] = aniversariante.data_nascimento.split('-').map(Number)
+      const diaNascimento = dia
       
       // Próximos 7 dias
       for (let i = 1; i <= 7; i++) {
@@ -77,7 +79,9 @@ export const useAniversariantes = () => {
 
   // Função para formatar data de aniversário
   const formatarDataAniversario = (dataString: string) => {
-    const data = new Date(dataString)
+    // CORRIGIDO: Usar split para evitar problemas de timezone
+    const [ano, mes, dia] = dataString.split('-').map(Number)
+    const data = new Date(ano, mes - 1, dia)
     return data.toLocaleDateString('pt-BR', { 
       day: '2-digit', 
       month: 'long' 
@@ -87,7 +91,9 @@ export const useAniversariantes = () => {
   // Função para calcular idade
   const calcularIdade = (dataString: string) => {
     const hoje = new Date()
-    const nascimento = new Date(dataString)
+    // CORRIGIDO: Usar split para evitar problemas de timezone
+    const [ano, mes, dia] = dataString.split('-').map(Number)
+    const nascimento = new Date(ano, mes - 1, dia)
     let idade = hoje.getFullYear() - nascimento.getFullYear()
     
     const mesAtual = hoje.getMonth()

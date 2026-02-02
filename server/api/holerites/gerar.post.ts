@@ -75,25 +75,25 @@ function calcularDatasHolerite(tipo: 'adiantamento' | 'mensal') {
     }
   } else {
     // REGRA: Folha mensal sempre do mês vigente (atual)
-    // Data de pagamento: 5º dia útil do mês seguinte
+    // Data de pagamento: 5º dia útil do mês de referência
     
     // Sempre gerar folha mensal do mês atual
     const periodoInicio = new Date(anoAtual, mesAtual - 1, 1)
     const ultimoDiaMes = new Date(anoAtual, mesAtual, 0).getDate()
     const periodoFim = new Date(anoAtual, mesAtual - 1, ultimoDiaMes)
     
-    // Data de pagamento: 5º dia útil do mês seguinte
-    const proximoMes = mesAtual === 12 ? 1 : mesAtual + 1
-    const proximoAno = mesAtual === 12 ? anoAtual + 1 : anoAtual
-    const dataPagamento = calcular5oDiaUtil(proximoAno, proximoMes)
+    // CORREÇÃO: Data de pagamento deve ser 5º dia útil do mês de referência (mesmo mês)
+    const dataPagamento = calcular5oDiaUtil(anoAtual, mesAtual)
     
     // Log detalhado para debug
     console.log(`📅 FOLHA MENSAL - Cálculo de Datas:`)
     console.log(`   Data Atual: ${hoje.toISOString().split('T')[0]}`)
     console.log(`   Mês Atual: ${mesAtual}/${anoAtual}`)
     console.log(`   Período: ${periodoInicio.toISOString().split('T')[0]} a ${periodoFim.toISOString().split('T')[0]}`)
+    console.log(`   Data Pagamento: ${dataPagamento.toISOString().split('T')[0]} (5º dia útil do mês de referência)`)
     console.log(`   Mês Referência: ${anoAtual}-${String(mesAtual).padStart(2, '0')}`)
     console.log(`   ✅ Competência: ${mesAtual}/${anoAtual} (MÊS VIGENTE)`)
+    console.log(`   ✅ CORREÇÃO: Data de pagamento agora usa o mês de referência, não o mês seguinte`)
     
     return {
       periodo_inicio: periodoInicio.toISOString().split('T')[0],

@@ -43,13 +43,19 @@ export default defineEventHandler(async (event) => {
     const aniversariantesMes = aniversariantes?.filter(funcionario => {
       if (!funcionario.data_nascimento) return false
       
-      const dataNascimento = new Date(funcionario.data_nascimento)
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      const [ano, mes, dia] = funcionario.data_nascimento.split('-').map(Number)
+      const dataNascimento = new Date(ano, mes - 1, dia)
       const mesNascimento = dataNascimento.getMonth() + 1
       
       return mesNascimento === mesAtual
     }).map(funcionario => ({
       ...funcionario,
-      dia: new Date(funcionario.data_nascimento).getDate(),
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      dia: (() => {
+        const [ano, mes, dia] = funcionario.data_nascimento.split('-').map(Number)
+        return dia
+      })(),
       cargo: funcionario.cargos?.nome || 'Cargo não definido',
       departamento: funcionario.departamentos?.nome || 'Departamento não definido'
     })) || []
@@ -58,8 +64,9 @@ export default defineEventHandler(async (event) => {
     
     // Ordenar por dia do aniversário
     aniversariantesMes.sort((a, b) => {
-      const diaA = new Date(a.data_nascimento).getDate()
-      const diaB = new Date(b.data_nascimento).getDate()
+      // CORRIGIDO: Usar split para evitar problemas de timezone
+      const [anoA, mesA, diaA] = a.data_nascimento.split('-').map(Number)
+      const [anoB, mesB, diaB] = b.data_nascimento.split('-').map(Number)
       return diaA - diaB
     })
     

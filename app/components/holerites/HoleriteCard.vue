@@ -76,16 +76,16 @@
           <div v-if="holerite.dataDisponibilizacao">
             <div class="text-xs text-gray-500 mb-1">Disponível em</div>
             <div class="text-sm font-medium text-gray-700">
-              {{ holerite.dataDisponibilizacao ? formatarData(holerite.dataDisponibilizacao) : 'N/A' }}
+              {{ formatarData(holerite.dataDisponibilizacao) }}
             </div>
           </div>
         </div>
 
-        <!-- Período Quinzenal -->
-        <div v-if="holerite.periodoInicio && holerite.periodoFim" class="mt-3 p-3 bg-blue-50 rounded-lg">
+        <!-- Período de Referência -->
+        <div v-if="holerite.periodo_inicio && holerite.periodo_fim" class="mt-3 p-3 bg-blue-50 rounded-lg">
           <div class="text-xs text-blue-700 font-medium mb-1">📅 Período de Referência</div>
           <div class="text-sm text-blue-800">
-            {{ holerite.periodoInicio ? formatarData(holerite.periodoInicio) : 'N/A' }} até {{ holerite.periodoFim ? formatarData(holerite.periodoFim) : 'N/A' }}
+            {{ formatarPeriodoReferencia() }}
           </div>
         </div>
       </div>
@@ -215,9 +215,9 @@ const isAdiantamento = computed(() => {
   // Verifica se é quinzena 1 ou se o período vai do dia 15 ao último dia do mês
   if (props.holerite?.quinzena === 1) return true
   
-  if (props.holerite?.periodoInicio && props.holerite?.periodoFim) {
-    const inicio = new Date(props.holerite.periodoInicio)
-    const fim = new Date(props.holerite.periodoFim)
+  if (props.holerite?.periodo_inicio && props.holerite?.periodo_fim) {
+    const inicio = new Date(props.holerite.periodo_inicio)
+    const fim = new Date(props.holerite.periodo_fim)
     // Adiantamento: período do dia 15 ao último dia do mês
     return inicio.getDate() === 15 && fim.getDate() >= 28
   }
@@ -252,5 +252,23 @@ const getTipoHoleriteIcon = (): string => {
 // Função para obter label do tipo de holerite
 const getTipoHoleriteLabel = (): string => {
   return isAdiantamento.value ? 'Adiantamento' : 'Folha Mensal'
+}
+
+// Função para formatar período de referência
+const formatarPeriodoReferencia = (): string => {
+  if (!props.holerite?.periodo_inicio || !props.holerite?.periodo_fim) {
+    return 'Período não definido'
+  }
+  
+  // Para adiantamentos, mostrar o período completo (do dia 15 ao último dia do mês)
+  if (isAdiantamento.value) {
+    return `${formatarData(props.holerite.periodo_inicio)} até ${formatarData(props.holerite.periodo_fim)}`
+  }
+  
+  // Para folha mensal, mostrar o mês vigente (baseado no período fim)
+  // O período fim representa o último dia do mês de referência
+  const dataFim = new Date(props.holerite.periodo_fim)
+  const mesNome = dataFim.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  return mesNome.charAt(0).toUpperCase() + mesNome.slice(1) // Capitalizar primeira letra
 }
 </script>

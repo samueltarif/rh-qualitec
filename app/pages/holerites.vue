@@ -211,33 +211,41 @@ const carregarHolerites = async () => {
         return null
       }
       
-      const periodoInicio = h.periodo_inicio ? new Date(h.periodo_inicio) : new Date()
-      const periodoFim = h.periodo_fim ? new Date(h.periodo_fim) : new Date()
-      const mes = String(periodoInicio.getMonth() + 1).padStart(2, '0')
-      const ano = String(periodoInicio.getFullYear())
+      // CORREÇÃO: Definir as datas do período corretamente
+      const periodoInicio = new Date(h.periodo_inicio)
+      const periodoFim = new Date(h.periodo_fim)
+      
+      // Para holerites mensais, usar periodo_fim para determinar o mês correto
+      // Para adiantamentos, usar periodo_inicio
+      const diaInicio = periodoInicio.getDate()
+      const isAdiantamentoTemp = diaInicio === 15
+      
+      // Se for adiantamento, usar periodo_inicio; se for mensal, usar periodo_fim
+      const dataReferencia = isAdiantamentoTemp ? periodoInicio : periodoFim
+      const mes = String(dataReferencia.getMonth() + 1).padStart(2, '0')
+      const ano = String(dataReferencia.getFullYear())
       
       // Determinar tipo e quinzena
       let tipo = 'Mensal'
       let quinzena = null
-      let referencia = `Holerite ${periodoInicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
+      let referencia = `Holerite ${dataReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
       
       // Verificar se é quinzenal baseado no período
-      const diaInicio = periodoInicio.getDate()
       const diaFim = periodoFim.getDate()
       
       if (diaInicio === 15) {
         // Adiantamento salarial: período do dia 15 ao último dia do mês
         tipo = 'Adiantamento'
         quinzena = 1
-        referencia = `Adiantamento Salarial ${periodoInicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
+        referencia = `Adiantamento Salarial ${dataReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
       } else if (diaInicio === 16) {
         tipo = 'Quinzenal'
         quinzena = 2
-        referencia += ' - 2ª Quinzena'
+        referencia = `Holerite ${dataReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} - 2ª Quinzena`
       } else if (diaInicio === 1 && diaFim <= 15) {
         tipo = 'Quinzenal'
         quinzena = 1
-        referencia += ' - 1ª Quinzena'
+        referencia = `Holerite ${dataReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} - 1ª Quinzena`
       }
       
       const holeriteFormatado = {
@@ -259,7 +267,10 @@ const carregarHolerites = async () => {
         liquido: h.salario_liquido || 0,
         periodoInicio: periodoInicio,
         periodoFim: periodoFim,
-        dataDisponibilizacao: h.data_pagamento ? new Date(h.data_pagamento) : null,
+        // Também adicionar os campos com snake_case para compatibilidade
+        periodo_inicio: h.periodo_inicio,
+        periodo_fim: h.periodo_fim,
+        dataDisponibilizacao: h.data_pagamento ? new Date(h.data_pagamento + 'T00:00:00') : null,
         // Campos adicionais para edição
         horas_trabalhadas: h.horas_trabalhadas || null,
         horas_extras: h.horas_extras || 0,
