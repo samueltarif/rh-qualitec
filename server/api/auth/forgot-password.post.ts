@@ -168,8 +168,16 @@ export default defineEventHandler(async (event) => {
 
 // Função para enviar email de recuperação de senha
 async function enviarEmailRecuperacaoSenha(email: string, token: string) {
-  const config = useRuntimeConfig()
-  const resetUrl = `${config.public.baseUrl}/reset-password?token=${token}`
+  // Importar utilitário de configuração
+  const { getBaseUrl, logEnvironmentInfo } = await import('../../utils/config')
+  
+  // Log para debug
+  logEnvironmentInfo()
+  
+  const baseUrl = getBaseUrl()
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`
+  
+  console.log('🔗 [RESET-PASSWORD] URL final gerada:', resetUrl)
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

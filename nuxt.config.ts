@@ -36,7 +36,13 @@ export default defineNuxtConfig({
     public: {
       supabaseUrl: process.env.SUPABASE_URL || process.env.NUXT_PUBLIC_SUPABASE_URL,
       supabaseKey: process.env.SUPABASE_ANON_KEY || process.env.NUXT_PUBLIC_SUPABASE_KEY,
-      baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+      baseUrl: process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : process.env.NUXT_PUBLIC_BASE_URL 
+        ? process.env.NUXT_PUBLIC_BASE_URL
+        : process.env.NODE_ENV === 'production' 
+        ? 'https://rhqualitec.vercel.app' 
+        : 'http://localhost:3000'
     }
   },
   
