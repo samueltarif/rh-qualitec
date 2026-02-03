@@ -1,4 +1,123 @@
 {
   "mcpServers": {
+    "TestSprite": {
+      "command": "npx",
+      "args": [
+        "@testsprite/testsprite-mcp@latest"
+      ],
+      "env": {
+        "API_KEY": "YOUR_TESTSPRITE_API_KEY"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "testsprite_bootstrap",
+        "testsprite_generate_code_summary",
+        "testsprite_generate_standardized_prd",
+        "testsprite_generate_frontend_test_plan",
+        "testsprite_generate_code_and_execute"
+      ]
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project-from-cwd"
+      ],
+      "env": {
+        "NPM_EXECUTABLE": "C:\\Users\\Vendas2\\Downloads\\node-v20.20.0-win-x64\\node-v20.20.0-win-x64\\npm.cmd",
+        "NODE_EXECUTABLE": "C:\\Users\\Vendas2\\Downloads\\node-v20.20.0-win-x64\\node-v20.20.0-win-x64\\node.exe"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "write_memory",
+        "edit_memory",
+        "check_onboarding_performed",
+        "get_symbols_overview",
+        "initial_instructions",
+        "list_memories",
+        "onboarding",
+        "list_dir",
+        "find_file",
+        "search_for_pattern",
+        "replace_symbol_body",
+        "think_about_collected_information",
+        "think_about_whether_you_are_done",
+        "find_symbol",
+        "find_referencing_symbols",
+        "insert_after_symbol",
+        "think_about_task_adherence",
+        "read_memory"
+      ]
+    },
+    "shadcn-ui": {
+      "command": "npx",
+      "args": [
+        "@jpisnice/shadcn-ui-mcp-server",
+        "--framework",
+        "vue",
+        "--github-api-key",
+        "ghp_YOUR_GITHUB_TOKEN"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_YOUR_GITHUB_TOKEN"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "get_component",
+        "list_components",
+        "get_component_demo",
+        "get_component_metadata",
+        "get_block",
+        "list_blocks",
+        "apply_theme",
+        "list_themes",
+        "get_theme",
+        "get_directory_structure"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "@upstash/context7-mcp@2.1.1"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "resolve_library_id",
+        "query_docs"
+      ]
+    },
+    "fetch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-fetch-typescript"
+      ],
+      "disabled": false,
+      "autoApprove": [
+        "get_raw_text",
+        "get_rendered_html",
+        "get_markdown",
+        "get_markdown_summary"
+      ]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?read_only=false&project_ref=rqryspxfvfzfghrfqtbm",
+      "disabled": false,
+      "autoApprove": [
+        "list_tables",
+        "get_table_definition",
+        "apply_migration",
+        "get_advisors"
+      ]
+    }
   }
 }

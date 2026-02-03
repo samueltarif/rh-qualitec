@@ -32,7 +32,7 @@
         <!-- Branding Qualitec -->
         <div class="text-center mb-8">
           <!-- Logo -->
-          <div class="flex justify-center mb-4">
+          <div class="flex justify-center mb-6">
             <div class="relative">
               <img 
                 src="/images/qualitec_logo.png" 
@@ -44,25 +44,18 @@
             </div>
           </div>
           
-          <!-- Título e Subtítulo -->
+          <!-- Subtítulo -->
           <div class="space-y-2 mb-6">
-            <h1 class="text-2xl font-bold text-industrial-800">
+            <p class="text-sm text-industrial-600 font-medium">
               Gestão de Recursos Humanos
-            </h1>
+            </p>
           </div>
-        </div>
-
-        <!-- Badge de Acesso Seguro -->
-        <div class="mb-6 p-4 bg-gradient-to-r from-qualitec-50 to-industrial-50 border border-qualitec-200 rounded-xl">
-          <div class="flex items-center justify-center gap-3">
-            <div class="w-10 h-10 bg-qualitec-600 rounded-full flex items-center justify-center shadow-lg">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-              </svg>
-            </div>
-            <div class="text-center">
-              <p class="text-qualitec-800 font-bold text-sm">Sistema Corporativo</p>
-            </div>
+          
+          <!-- Linha Decorativa Industrial -->
+          <div class="flex items-center justify-center">
+            <div class="h-px bg-gradient-to-r from-transparent via-qualitec-300 to-transparent w-32"></div>
+            <div class="mx-3 w-2 h-2 bg-qualitec-500 rounded-full"></div>
+            <div class="h-px bg-gradient-to-r from-transparent via-qualitec-300 to-transparent w-32"></div>
           </div>
         </div>
 
@@ -89,6 +82,7 @@
               </div>
             </div>
           </Transition>
+
           <!-- Campo Email -->
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-industrial-700 mb-2">
@@ -205,16 +199,6 @@
             </button>
           </div>
 
-          <!-- CAPTCHA Placeholder -->
-          <div class="p-4 bg-industrial-50 border border-industrial-200 rounded-xl">
-            <div class="flex items-center justify-center gap-2 text-industrial-600">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-              <span class="text-sm font-medium">Verificação de segurança ativada</span>
-            </div>
-          </div>
-
           <!-- Botão de Login -->
           <UiButtonIndustrial 
             type="submit" 
@@ -229,22 +213,6 @@
             <span v-else>Autenticando...</span>
           </UiButtonIndustrial>
         </form>
-
-        <!-- Informações de Segurança -->
-        <div class="mt-8 p-6 bg-gradient-to-r from-industrial-50 to-qualitec-50 rounded-xl border border-industrial-200">
-          <div class="text-center space-y-3">
-            <div class="flex items-center justify-center gap-3">
-              <div class="w-12 h-12 bg-qualitec-600 rounded-full flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
-              </div>
-              <div class="text-left">
-                <p class="text-qualitec-800 font-bold text-sm">Sistema Seguro</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </UiCardIndustrial>
 
       <!-- Modal Recuperação de Senha -->
@@ -523,6 +491,7 @@ const closeForgotPasswordModal = () => {
   forgotPasswordMessage.value = ''
   forgotPasswordLoading.value = false
 }
+
 const clearErrors = () => {
   error.value = ''
   emailError.value = ''
@@ -573,28 +542,5 @@ onMounted(() => {
 
 .animate-pulse-slow {
   animation: pulse-slow 3s ease-in-out infinite;
-}
-
-/* Transições suaves para estados de erro */
-.error-transition {
-  transition: all 0.3s ease;
-}
-
-/* Feedback visual para campos com erro */
-.field-error {
-  position: relative;
-}
-
-.field-error::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid #ef4444;
-  border-radius: 0.75rem;
-  opacity: 0.3;
-  animation: pulse 1s ease-in-out;
 }
 </style>
