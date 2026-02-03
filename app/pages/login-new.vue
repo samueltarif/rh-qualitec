@@ -85,36 +85,8 @@
           </div>
         </div>
 
-        <!-- Alerta de Erro Geral -->
-        <div v-if="error || emailError" class="mb-6">
-          <UiAlert variant="error" :title="emailError ? 'Erro de Autenticação' : 'Erro no Login'">
-            {{ emailError || error }}
-          </UiAlert>
-        </div>
-
         <!-- Formulário de Login -->
-        <form @submit.prevent="handleLogin" class="space-y-6" :class="{ 'shake': shakeForm }">
-          <!-- Alerta de Erro Geral -->
-          <Transition name="fade">
-            <div 
-              v-if="error || emailError" 
-              class="p-4 bg-safety-danger/10 border-2 border-safety-danger/30 rounded-xl"
-            >
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-safety-danger rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-                <div class="flex-1">
-                  <h4 class="text-safety-danger font-bold text-sm mb-1">Erro de Autenticação</h4>
-                  <p class="text-safety-danger text-sm">
-                    {{ emailError || error }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Transition>
+        <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Campo Email -->
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-industrial-700 mb-2">
@@ -128,7 +100,6 @@
             </label>
             <input
               v-model="email"
-              @input="clearErrors"
               type="email"
               placeholder="seu.email@qualitecinstrumentos.com.br"
               autocomplete="email"
@@ -138,19 +109,19 @@
                 'border-2 rounded-xl outline-none transition-all duration-200',
                 'bg-white/95 backdrop-blur-sm',
                 'placeholder:text-industrial-400 placeholder:font-normal',
-                emailError 
+                error && emailError 
                   ? 'border-safety-danger/50 focus:border-safety-danger focus:ring-4 focus:ring-safety-danger/10'
                   : 'border-industrial-300 focus:border-qualitec-500 focus:ring-4 focus:ring-qualitec-100 hover:border-industrial-400',
                 'shadow-sm focus:shadow-md'
               ]"
             />
-            <p v-if="!emailError" class="text-xs text-industrial-500 mt-1 flex items-center gap-1">
+            <p v-if="!error || !emailError" class="text-xs text-industrial-500 mt-1 flex items-center gap-1">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               Use seu e-mail corporativo fornecido pelo RH
             </p>
-            <p v-if="emailError" class="text-xs text-safety-danger mt-1 flex items-center gap-1">
+            <p v-if="error && emailError" class="text-xs text-safety-danger mt-1 flex items-center gap-1">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
@@ -172,7 +143,6 @@
             <div class="relative">
               <input
                 v-model="senha"
-                @input="clearErrors"
                 :type="passwordVisible ? 'text' : 'password'"
                 placeholder="Digite sua senha corporativa"
                 autocomplete="current-password"
@@ -182,7 +152,7 @@
                   'border-2 rounded-xl outline-none transition-all duration-200',
                   'bg-white/95 backdrop-blur-sm',
                   'placeholder:text-industrial-400 placeholder:font-normal',
-                  error 
+                  error && !emailError 
                     ? 'border-safety-danger/50 focus:border-safety-danger focus:ring-4 focus:ring-safety-danger/10'
                     : 'border-industrial-300 focus:border-qualitec-500 focus:ring-4 focus:ring-qualitec-100 hover:border-industrial-400',
                   'shadow-sm focus:shadow-md'
@@ -203,7 +173,7 @@
                 </svg>
               </button>
             </div>
-            <p v-if="error" class="text-xs text-safety-danger mt-1 flex items-center gap-1">
+            <p v-if="error && !emailError" class="text-xs text-safety-danger mt-1 flex items-center gap-1">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
@@ -414,7 +384,6 @@ const loading = ref(false)
 const error = ref('')
 const emailError = ref('')
 const passwordVisible = ref(false)
-const shakeForm = ref(false)
 
 // Estados do modal de recuperação de senha
 const showForgotPasswordModal = ref(false)
@@ -423,99 +392,34 @@ const forgotPasswordLoading = ref(false)
 const forgotPasswordMessage = ref('')
 const forgotPasswordMessageType = ref('error')
 
-// Função para ativar animação de shake
-const triggerShake = () => {
-  shakeForm.value = true
-  setTimeout(() => {
-    shakeForm.value = false
-  }, 500)
-}
-
 const handleLogin = async () => {
-  // Limpar erros anteriores
   error.value = ''
   emailError.value = ''
   loading.value = true
   
-  try {
-    // Validações básicas no frontend
-    if (!email.value.trim()) {
-      emailError.value = 'Email é obrigatório'
-      loading.value = false
-      triggerShake()
-      return
-    }
-    
-    if (!senha.value.trim()) {
-      error.value = 'Senha é obrigatória'
-      loading.value = false
-      triggerShake()
-      return
-    }
-    
-    // Validação de formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email.value)) {
-      emailError.value = 'Formato de email inválido'
-      loading.value = false
-      triggerShake()
-      return
-    }
-    
-    console.log('🔐 [LOGIN] Tentando fazer login com:', email.value)
-    
-    // Simular delay para UX
-    await new Promise(resolve => setTimeout(resolve, 800))
+  // Simular delay para UX
+  await new Promise(resolve => setTimeout(resolve, 800))
 
-    const result = await login(email.value, senha.value)
-    
-    console.log('🔐 [LOGIN] Resultado:', result)
-    
-    if (result.success) {
-      console.log('🔐 [LOGIN] Login bem-sucedido, redirecionando...')
-      
-      // Salvar preferência "lembrar-me" se necessário
-      if (rememberMe.value) {
-        localStorage.setItem('qualitec_remember_email', email.value)
-      } else {
-        localStorage.removeItem('qualitec_remember_email')
-      }
-      
-      await navigateTo('/dashboard')
+  const result = await login(email.value, senha.value)
+  
+  if (result.success) {
+    // Salvar preferência "lembrar-me" se necessário
+    if (rememberMe.value) {
+      localStorage.setItem('qualitec_remember_email', email.value)
     } else {
-      console.log('🔐 [LOGIN] Erro no login:', result.message)
-      
-      // Melhor detecção de tipos de erro
-      const message = result.message.toLowerCase()
-      
-      if (message.includes('email') || 
-          message.includes('usuário') || 
-          message.includes('usuario') ||
-          message.includes('não encontrado') ||
-          message.includes('não existe')) {
-        emailError.value = result.message
-        console.log('🔐 [LOGIN] Erro de email:', result.message)
-      } else if (message.includes('senha') || 
-                 message.includes('incorret') ||
-                 message.includes('inválid')) {
-        error.value = result.message
-        console.log('🔐 [LOGIN] Erro de senha:', result.message)
-      } else {
-        // Erro genérico - mostrar como erro de senha por padrão
-        error.value = result.message
-        console.log('🔐 [LOGIN] Erro genérico:', result.message)
-      }
-      
-      // Ativar animação de shake
-      triggerShake()
+      localStorage.removeItem('qualitec_remember_email')
     }
-  } catch (err: any) {
-    console.error('🔐 [LOGIN] Erro inesperado:', err)
-    error.value = 'Erro inesperado. Tente novamente.'
-    triggerShake()
-  } finally {
-    loading.value = false
+    
+    navigateTo('/dashboard')
+  } else {
+    // Verificar se é erro de email específico
+    if (result.message.toLowerCase().includes('email') || result.message.toLowerCase().includes('usuário')) {
+      emailError.value = result.message
+    } else {
+      error.value = result.message
+    }
   }
+  loading.value = false
 }
 
 const handleForgotPassword = async () => {
@@ -554,10 +458,6 @@ const closeForgotPasswordModal = () => {
   forgotPasswordMessage.value = ''
   forgotPasswordLoading.value = false
 }
-const clearErrors = () => {
-  error.value = ''
-  emailError.value = ''
-}
 
 // Carregar email salvo se "lembrar-me" estava ativo
 onMounted(() => {
@@ -583,49 +483,5 @@ onMounted(() => {
 .modal-enter-from, .modal-leave-to {
   opacity: 0;
   transform: scale(0.9);
-}
-
-/* Animação de shake para erros */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
-}
-
-.shake {
-  animation: shake 0.5s ease-in-out;
-}
-
-/* Animação de pulse para elementos importantes */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
-
-/* Transições suaves para estados de erro */
-.error-transition {
-  transition: all 0.3s ease;
-}
-
-/* Feedback visual para campos com erro */
-.field-error {
-  position: relative;
-}
-
-.field-error::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid #ef4444;
-  border-radius: 0.75rem;
-  opacity: 0.3;
-  animation: pulse 1s ease-in-out;
 }
 </style>

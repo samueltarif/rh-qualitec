@@ -58,12 +58,36 @@ export const useAuth = () => {
         return { success: true, message: 'Login realizado com sucesso!' }
       }
 
-      return { success: false, message: 'Email ou senha incorretos. Tente novamente.' }
+      return { success: false, message: response.message || 'Email ou senha incorretos. Tente novamente.' }
     } catch (error: any) {
       console.error('🔐 [AUTH] Erro no login:', error)
-      return { 
-        success: false, 
-        message: error.data?.message || 'Email ou senha incorretos. Tente novamente.' 
+      
+      // Tratar diferentes tipos de erro
+      if (error.statusCode === 401) {
+        return { 
+          success: false, 
+          message: error.data?.statusMessage || 'Email ou senha incorretos. Verifique suas credenciais.' 
+        }
+      } else if (error.statusCode === 429) {
+        return { 
+          success: false, 
+          message: 'Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.' 
+        }
+      } else if (error.statusCode === 400) {
+        return { 
+          success: false, 
+          message: 'Dados inválidos. Verifique se preencheu todos os campos corretamente.' 
+        }
+      } else if (error.statusCode >= 500) {
+        return { 
+          success: false, 
+          message: 'Erro no servidor. Tente novamente em alguns instantes.' 
+        }
+      } else {
+        return { 
+          success: false, 
+          message: error.data?.statusMessage || error.data?.message || 'Erro de conexão. Verifique sua internet e tente novamente.' 
+        }
       }
     }
   }

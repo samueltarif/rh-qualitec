@@ -168,7 +168,8 @@ export default defineEventHandler(async (event) => {
 
 // Função para enviar email de recuperação de senha
 async function enviarEmailRecuperacaoSenha(email: string, token: string) {
-  const resetUrl = `${process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password?token=${token}`
+  const config = useRuntimeConfig()
+  const resetUrl = `${config.public.baseUrl}/reset-password?token=${token}`
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
