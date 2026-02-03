@@ -1,8 +1,13 @@
+import { requireAdmin } from '../../utils/authMiddleware'
 import { serverSupabaseServiceRole } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   try {
     console.log('[STATS] Iniciando busca de estatísticas...')
+    
+    // SEGURANÇA: Verificar se o usuário é admin
+    const requestingUser = await requireAdmin(event)
+    console.log('[STATS] Admin autenticado:', requestingUser.nome_completo)
     
     const supabase = serverSupabaseServiceRole(event)
     

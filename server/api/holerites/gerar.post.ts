@@ -1,3 +1,4 @@
+import { requireAdmin } from '../../utils/authMiddleware'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { calcularINSS2026 } from '../../utils/inss2026'
 import { notificarGeracaoHolerites } from '../../utils/notifications'
@@ -235,6 +236,10 @@ function calcularBaseIRRF(
 
 export default defineEventHandler(async (event) => {
   try {
+    // SEGURANÇA: Verificar se o usuário é admin
+    const requestingUser = await requireAdmin(event)
+    console.log('🔒 Admin autenticado:', requestingUser.nome_completo, 'gerando holerites')
+    
     const supabase = serverSupabaseServiceRole(event)
     const body = await readBody(event)
     

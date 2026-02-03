@@ -1,10 +1,10 @@
+import { requireOwnershipOrAdmin } from '../../utils/authMiddleware'
 import { serverSupabaseServiceRole } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   console.log('🔍 [API] GET /api/funcionarios/[id] - Iniciando busca')
   
   try {
-    const supabase = serverSupabaseServiceRole(event)
     const id = getRouterParam(event, 'id')
 
     console.log('📋 [API] ID recebido:', id)
@@ -13,9 +13,15 @@ export default defineEventHandler(async (event) => {
       console.error('❌ [API] ID do funcionário não fornecido')
       throw createError({
         statusCode: 400,
-        message: 'ID do funcionário não fornecido'
+        statusMessage: 'ID do funcionário não fornecido'
       })
     }
+
+    // SEGURANÇA: Verificar autenticação e autorização
+    const requestingUser = await requireOwnershipOrAdmin(event, id)
+    console.log('🔒 [API] Usuário autenticado:', requestingUser.nome_completo, 'acessando dados do ID:', id)
+
+    const supabase = serverSupabaseServiceRole(event)
 
     console.log('🔍 [API] Buscando funcionário no Supabase...')
     const { data: funcionario, error } = await supabase

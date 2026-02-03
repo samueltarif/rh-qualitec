@@ -1,5 +1,6 @@
 import { verifyPassword } from '../../utils/auth'
 import { notificarLogin, criarNotificacaoAdmin } from '../../utils/notifications'
+import { createSessionCookie } from '../../utils/authMiddleware'
 
 // Rate limiting simples (em produção, use Redis)
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
@@ -10,13 +11,6 @@ export default defineEventHandler(async (event) => {
   
   console.log(`🔐 [${requestId}] INÍCIO - Nova tentativa de login`)
   console.log(`🔐 [${requestId}] Timestamp: ${new Date().toISOString()}`)
-  console.log(`🔐 [${requestId}] URL: ${event.node.req.url}`)
-  console.log(`🔐 [${requestId}] Method: ${event.node.req.method}`)
-  console.log(`🔐 [${requestId}] Headers:`, Object.fromEntries(
-    Object.entries(event.node.req.headers).filter(([key]) => 
-      ['user-agent', 'referer', 'origin', 'x-forwarded-for'].includes(key.toLowerCase())
-    )
-  ))
 
   const { email, senha } = await readBody(event)
 
@@ -24,7 +18,7 @@ export default defineEventHandler(async (event) => {
     console.log(`🔐 [${requestId}] ERRO - Email ou senha não fornecidos`)
     throw createError({
       statusCode: 400,
-      message: 'Email e senha são obrigatórios'
+      statusMessage: 'Email e senha são obrigatórios'
     })
   }
 
@@ -36,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (attempts && attempts.count >= 5 && now - attempts.lastAttempt < 15 * 60 * 1000) {
     throw createError({
       statusCode: 429,
-      message: 'Muitas tentativas de login. Tente novamente em 15 minutos.'
+      statusMessage: 'Muitas tentativas de login. Tente novamente em 15 minutos.'
     })
   }
 
@@ -47,10 +41,10 @@ export default defineEventHandler(async (event) => {
   try {
     console.log(`🔐 [${requestId}] Tentativa de login:`, { email, clientIP })
     
-    // Buscar funcionário apenas pelo email (incluindo ambas as colunas de senha)
-    const url = `${supabaseUrl}/rest/v1/funcionarios?email_login=eq.${encodeURIComponent(email)}&status=eq.ativo&select=id,nome_completo,email_login,tipo_acesso,status,cargo_id,departamento_id,senha,senha_hash`
+    // Buscar funcionário apenas pelo email (SEM incluir senhas na resposta)
+    const url = `${supabaseUrl}/rest/v1/funcionarios?email_login=eq.${encodeURIComponent(email)}&status=eq.ativo&select=id,nome_completo,email_login,tipo_acesso,status,cargo_id,departamento_id,senha_hash`
     
-    console.log(`🔐 [${requestId}] 📡 URL da consulta:`, url)
+    console.log(`🔐 [${requestId}] 📡 Consultando usuário...`)
 
     const response = await fetch(url, {
       headers: {
@@ -67,27 +61,22 @@ export default defineEventHandler(async (event) => {
     console.log(`🔐 [${requestId}] 👥 Funcionários encontrados:`, funcionarios.length)
 
     if (!response.ok || !funcionarios || funcionarios.length === 0) {
-      console.log(`🔐 [${requestId}] ⚠️ Nenhum funcionário encontrado ou erro na resposta:`, funcionarios)
+      console.log(`🔐 [${requestId}] ⚠️ Usuário não encontrado`)
       // Incrementar tentativas falhadas
       const currentAttempts = loginAttempts.get(clientIP) || { count: 0, lastAttempt: 0 }
       loginAttempts.set(clientIP, { count: currentAttempts.count + 1, lastAttempt: now })
       
       throw createError({
         statusCode: 401,
-        message: 'Email ou senha incorretos'
+        statusMessage: 'Email ou senha incorretos'
       })
     }
 
     const funcionario = funcionarios[0]
     console.log(`🔐 [${requestId}] 👤 Funcionário encontrado:`, { id: funcionario.id, nome: funcionario.nome_completo })
-    console.log(`🔐 [${requestId}] 🔑 Tem senha_hash:`, !!funcionario.senha_hash)
-    console.log(`🔐 [${requestId}] 🔑 Tem senha:`, !!funcionario.senha)
     
-    // Verificar senha com hash (prioriza senha_hash, fallback para senha)
-    const senhaParaVerificar = funcionario.senha_hash || funcionario.senha
-    console.log(`🔐 [${requestId}] 🔍 Verificando senha com:`, senhaParaVerificar ? 'hash/senha encontrada' : 'NENHUMA SENHA')
-    
-    const isValidPassword = await verifyPassword(senha, senhaParaVerificar)
+    // Verificar senha com hash
+    const isValidPassword = await verifyPassword(senha, funcionario.senha_hash)
     console.log(`🔐 [${requestId}] ✅ Senha válida:`, isValidPassword)
     
     if (!isValidPassword) {
@@ -123,14 +112,26 @@ export default defineEventHandler(async (event) => {
       
       throw createError({
         statusCode: 401,
-        message: 'Email ou senha incorretos'
+        statusMessage: 'Email ou senha incorretos'
       })
     }
 
     // Reset tentativas em caso de sucesso
     loginAttempts.delete(clientIP)
 
-    console.log(`🔐 [${requestId}] 🎉 LOGIN SUCESSO - Criando notificação...`)
+    console.log(`🔐 [${requestId}] 🎉 LOGIN SUCESSO - Criando sessão segura...`)
+
+    // Criar cookie de sessão seguro
+    const sessionCookie = createSessionCookie(funcionario.id, funcionario.tipo_acesso)
+    
+    // Definir cookie seguro
+    setCookie(event, 'session', sessionCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60, // 24 horas
+      path: '/'
+    })
 
     // Criar notificação de login para o admin
     await notificarLogin(event, {
@@ -142,7 +143,7 @@ export default defineEventHandler(async (event) => {
 
     console.log(`🔐 [${requestId}] ✅ CONCLUÍDO - Tempo total: ${Date.now() - startTime}ms`)
 
-    // Retornar dados do usuário (sem a senha_hash)
+    // Retornar dados do usuário (SEM senhas)
     return {
       success: true,
       user: {
@@ -163,7 +164,7 @@ export default defineEventHandler(async (event) => {
     
     throw createError({
       statusCode: 500,
-      message: 'Erro interno do servidor'
+      statusMessage: 'Erro interno do servidor'
     })
   }
 })

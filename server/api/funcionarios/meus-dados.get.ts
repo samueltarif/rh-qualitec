@@ -1,59 +1,70 @@
-// API para buscar dados do funcionário logado
+import { requireOwnershipOrAdmin, sanitizeUserData } from '../../utils/authMiddleware'
+import { serverSupabaseServiceRole } from '#supabase/server'
+
+// API para buscar dados do funcionário logado (com autenticação e autorização)
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const supabaseUrl = config.public.supabaseUrl
-  const serviceRoleKey = config.supabaseServiceRoleKey || config.public.supabaseKey
-
-  // Pegar ID do usuário do query parameter (enviado pelo frontend)
-  const query = getQuery(event)
-  const userId = query.userId
-
-  if (!userId) {
-    throw createError({
-      statusCode: 401,
-      message: 'Usuário não autenticado'
-    })
-  }
-
-  console.log('🔍 Buscando dados do funcionário ID:', userId)
-
   try {
-    // Buscar dados do funcionário com informações da empresa usando SERVICE ROLE KEY para bypassar RLS
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/funcionarios?id=eq.${userId}&select=*,empresas(id,nome_fantasia,nome,cnpj)`,
-      {
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
+    // Pegar ID do usuário do query parameter
+    const query = getQuery(event)
+    const targetUserId = query.userId
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erro ao buscar funcionário:', errorText)
-      throw new Error('Erro ao buscar dados do funcionário')
+    if (!targetUserId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'ID do usuário é obrigatório'
+      })
     }
 
-    const funcionarios = await response.json()
-    console.log('📦 Funcionários encontrados:', funcionarios.length)
+    // Verificar autenticação e autorização
+    const requestingUser = await requireOwnershipOrAdmin(event, targetUserId)
+    
+    console.log('🔍 Usuário autenticado:', requestingUser.nome_completo, 'buscando dados do ID:', targetUserId)
 
-    if (funcionarios && funcionarios.length > 0) {
-      console.log('✅ Dados do funcionário:', funcionarios[0].nome_completo)
-      return {
-        success: true,
-        data: funcionarios[0]
-      }
+    // Buscar dados do funcionário
+    const supabase = serverSupabaseServiceRole(event)
+    const { data: funcionario, error } = await supabase
+      .from('funcionarios')
+      .select(`
+        *,
+        empresas (
+          id,
+          nome,
+          nome_fantasia,
+          cnpj
+        )
+      `)
+      .eq('id', targetUserId)
+      .single()
+
+    if (error || !funcionario) {
+      console.error('❌ Erro ao buscar funcionário:', error)
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Funcionário não encontrado'
+      })
     }
 
-    console.error('❌ Funcionário não encontrado com ID:', userId)
-    throw new Error('Funcionário não encontrado')
+    // Sanitizar dados removendo informações sensíveis
+    const sanitizedData = sanitizeUserData(funcionario, requestingUser)
+    
+    console.log('✅ Dados do funcionário encontrados:', funcionario.nome_completo)
+    console.log('🔒 Dados sanitizados - campos sensíveis removidos')
+    
+    return {
+      success: true,
+      data: sanitizedData
+    }
+
   } catch (error: any) {
     console.error('💥 Erro ao buscar dados:', error)
+    
+    if (error.statusCode) {
+      throw error
+    }
+    
     throw createError({
       statusCode: 500,
-      message: error.message || 'Erro ao buscar dados do funcionário'
+      statusMessage: error.message || 'Erro interno do servidor'
     })
   }
 })

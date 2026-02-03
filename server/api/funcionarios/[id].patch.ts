@@ -1,13 +1,26 @@
+import { requireOwnershipOrAdmin } from '../../utils/authMiddleware'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { notificarAlteracaoDados } from '../../utils/notifications'
 
 export default defineEventHandler(async (event) => {
-  const supabase = serverSupabaseServiceRole(event)
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
 
   try {
     console.log('✏️ Atualizando funcionário ID:', id)
+
+    if (!id) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'ID do funcionário não fornecido'
+      })
+    }
+
+    // SEGURANÇA: Verificar autenticação e autorização
+    const requestingUser = await requireOwnershipOrAdmin(event, id)
+    console.log('🔒 Usuário autenticado:', requestingUser.nome_completo, 'atualizando dados do ID:', id)
+
+    const supabase = serverSupabaseServiceRole(event)
 
     // Função para converter strings vazias em null
     const cleanValue = (value: any) => {

@@ -523,7 +523,8 @@ const empresasMap = ref<Record<string, string>>({})
 // Função para formatar data
 const formatarData = (data: string) => {
   if (!data) return '--'
-  const date = new Date(data)
+  // CORREÇÃO: Adicionar T00:00:00 para evitar problemas de timezone
+  const date = new Date(data + 'T00:00:00')
   return date.toLocaleDateString('pt-BR')
 }
 
@@ -557,7 +558,7 @@ const formatarDataContratacao = () => {
 // Função para formatar moeda
 const formatarMoeda = (valor: number | string) => {
   const num = typeof valor === 'string' ? parseFloat(valor) : valor
-  if (!num) return 'R$ 0,00'
+  if (num === null || num === undefined || isNaN(num)) return 'R$ 0,00'
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
@@ -757,6 +758,14 @@ const carregarDados = async () => {
         forma_pagamento: response.data.forma_pagamento || 'deposito',
         chave_pix: response.data.chave_pix || ''
       }
+      
+      // Debug: verificar se o salário está sendo carregado
+      console.log('🔍 Salário carregado:', response.data.salario_base)
+      console.log('🔍 Dados financeiros:', dadosFinanceiros.value)
+      
+      // Debug: verificar se o salário está sendo carregado
+      console.log('🔍 Salário carregado:', response.data.salario_base)
+      console.log('🔍 Dados financeiros preenchidos:', dadosFinanceiros.value)
       
       // Verificar campos já editados uma vez
       camposEditadosUmaVez.value = {

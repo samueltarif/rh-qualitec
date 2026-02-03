@@ -141,7 +141,8 @@ const enviarCredenciais = async () => {
 const formatarData = (data: string) => {
   if (!data) return ''
   try {
-    return new Date(data).toLocaleDateString('pt-BR')
+    // CORREÇÃO: Adicionar T00:00:00 para evitar problemas de timezone
+    return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR')
   } catch (error) {
     return 'Data inválida'
   }

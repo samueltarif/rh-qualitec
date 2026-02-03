@@ -43,12 +43,13 @@
 
     <!-- Filtros -->
     <div class="bg-white p-4 rounded-xl border border-gray-200">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UiSelect 
-          v-model="filtros.empresa" 
-          :options="empresasOptions" 
-          label="Empresa" 
-          placeholder="Todas as empresas"
+          v-model="filtros.estilo" 
+          :options="estiloHoleriteOptions" 
+          label="Estilo de Holerite" 
+          placeholder="Todos os estilos"
+          :disabled="loading"
         />
         
         <UiSelect 
@@ -56,6 +57,7 @@
           :options="mesesOptions" 
           label="Mês/Ano" 
           placeholder="Selecione o período"
+          :disabled="loading"
         />
         
         <UiSelect 
@@ -63,17 +65,17 @@
           :options="statusOptions" 
           label="Status" 
           placeholder="Todos os status"
+          :disabled="loading"
         />
-        
-        <div class="flex items-end">
-          <UiButton 
-            variant="secondary" 
-            @click="aplicarFiltros"
-            class="w-full"
-          >
-            🔍 Filtrar
-          </UiButton>
-        </div>
+      </div>
+      
+      <!-- Indicador de filtros automáticos -->
+      <div v-if="loading" class="flex items-center justify-center mt-3 text-sm text-gray-600">
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+        Aplicando filtros...
+      </div>
+      <div v-else class="text-xs text-gray-500 mt-3 text-center">
+        ✨ Filtros aplicados automaticamente
       </div>
     </div>
 
@@ -500,7 +502,6 @@ const tipoDisponibilizar = ref<'adiantamento' | 'mensal' | 'todos'>('todos')
 const holeriteSelecionado = ref<Holerite | null>(null)
 const mostrarNotificacao = ref(false)
 const notificacao = ref<Notificacao>({ title: '', message: '', variant: 'info' })
-const empresas = ref<any[]>([])
 
 // Opções de geração
 const opcoesGeracao = ref({
@@ -509,18 +510,16 @@ const opcoesGeracao = ref({
 
 // Filtros
 const filtros = ref({
-  empresa: '',
+  estilo: '', // Mudança: empresa -> estilo (adiantamento/mensal)
   mes: '',
   status: ''
 })
 
 // Opções para os selects
-const empresasOptions = computed(() => [
-  { value: '', label: 'Todas as empresas' },
-  ...empresas.value.map(e => ({
-    value: e.id.toString(),
-    label: e.nome_fantasia
-  }))
+const estiloHoleriteOptions = computed(() => [
+  { value: '', label: 'Todos os estilos' },
+  { value: 'adiantamento', label: '💰 Adiantamentos (40%)' },
+  { value: 'mensal', label: '📄 Folhas Mensais' }
 ])
 
 const mesesOptions = computed(() => {
@@ -543,6 +542,31 @@ const statusOptions = computed(() => [
   { value: 'enviado', label: 'Enviado' },
   { value: 'visualizado', label: 'Visualizado' }
 ])
+// Watchers para filtros automáticos com debounce
+let timeoutId: NodeJS.Timeout | null = null
+
+const aplicarFiltrosComDebounce = () => {
+  if (timeoutId) {
+    clearTimeout(timeoutId)
+  }
+  
+  timeoutId = setTimeout(() => {
+    carregarHolerites()
+  }, 300) // Debounce de 300ms
+}
+
+// Watchers para aplicar filtros automaticamente
+watch(() => filtros.value.estilo, () => {
+  aplicarFiltrosComDebounce()
+})
+
+watch(() => filtros.value.mes, () => {
+  aplicarFiltrosComDebounce()
+})
+
+watch(() => filtros.value.status, () => {
+  aplicarFiltrosComDebounce()
+})
 
 // Funções
 const abrirModalGerar = (tipo: 'adiantamento' | 'mensal') => {
@@ -680,12 +704,26 @@ const disponibilizarHolerites = async () => {
 const carregarHolerites = async () => {
   loading.value = true
   try {
-    // Buscar holerites da API
+    // Buscar holerites da API com filtros funcionais
     const params: any = {}
     
-    if (filtros.value.empresa) params.empresa = filtros.value.empresa
-    if (filtros.value.mes) params.mes = filtros.value.mes
-    if (filtros.value.status) params.status = filtros.value.status
+    // Filtro por estilo (adiantamento/mensal)
+    if (filtros.value.estilo) {
+      params.estilo = filtros.value.estilo
+    }
+    
+    // Filtro por mês/ano
+    if (filtros.value.mes) {
+      params.mes = filtros.value.mes
+    }
+    
+    // Filtro por status - CORREÇÃO: Se não há filtro específico, incluir todos os status
+    if (filtros.value.status) {
+      params.status = filtros.value.status
+    } else {
+      // Quando não há filtro de status, incluir todos (pendente, enviado, etc.)
+      params.incluir_todos_status = true
+    }
     
     const data = await $fetch('/api/holerites', { params })
     holerites.value = data as Holerite[]
@@ -844,7 +882,7 @@ const enviarHolerite = async (holerite: Holerite) => {
       method: 'POST'
     })
     
-    // Atualizar status do holerite
+    // Atualizar status do holerite localmente
     holerite.status = 'enviado'
     
     notificacao.value = {
@@ -854,8 +892,10 @@ const enviarHolerite = async (holerite: Holerite) => {
     }
     mostrarNotificacao.value = true
     
-    // Recarregar lista
-    await carregarHolerites()
+    // Recarregar lista apenas se não há filtro de status específico ou se inclui 'enviado'
+    if (!filtros.value.status || filtros.value.status === 'enviado' || filtros.value.status === '') {
+      await carregarHolerites()
+    }
   } catch (error: any) {
     notificacao.value = {
       title: 'Erro!',
@@ -903,10 +943,6 @@ const salvarEdicaoHolerite = async (dadosAtualizados: any) => {
   }
 }
 
-const aplicarFiltros = () => {
-  // Implementar filtros
-  carregarHolerites()
-}
 
 const excluirHolerite = async (holerite: Holerite) => {
   // Confirmar exclusão
@@ -968,16 +1004,6 @@ const getStatusLabel = (status: string) => {
 
 // Carregar dados ao montar
 onMounted(async () => {
-  // Carregar empresas
-  try {
-    const data: any = await $fetch('/api/empresas')
-    if (Array.isArray(data)) {
-      empresas.value = data
-    }
-  } catch (error) {
-    console.error('Erro ao carregar empresas:', error)
-  }
-  
   // Carregar holerites
   carregarHolerites()
 })

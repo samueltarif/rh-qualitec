@@ -1,8 +1,13 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { requireAdmin, sanitizeUserData } from '../../utils/authMiddleware'
 
 export default defineEventHandler(async (event) => {
   try {
     console.log('[FUNCIONARIOS] Iniciando busca de funcionários...')
+    
+    // Verificar se o usuário é admin
+    const requestingUser = await requireAdmin(event)
+    console.log('[FUNCIONARIOS] Admin autenticado:', requestingUser.nome_completo)
     
     const supabase = serverSupabaseServiceRole(event)
     const query = getQuery(event)
@@ -10,7 +15,6 @@ export default defineEventHandler(async (event) => {
     const departamentoId = query.departamento
     const cargoId = query.cargo
     
-    console.log('[FUNCIONARIOS] Cliente Supabase criado')
     console.log('[FUNCIONARIOS] Filtros:', { empresaId, departamentoId, cargoId })
     
     let queryBuilder = supabase
@@ -55,16 +59,23 @@ export default defineEventHandler(async (event) => {
     
     console.log('[FUNCIONARIOS] Funcionários encontrados:', funcionarios?.length || 0)
     
-    return funcionarios || []
+    // Sanitizar dados de todos os funcionários (remover senhas)
+    const sanitizedFuncionarios = funcionarios?.map(funcionario => 
+      sanitizeUserData(funcionario, requestingUser)
+    ) || []
+    
+    return sanitizedFuncionarios
     
   } catch (error: any) {
     console.error('[FUNCIONARIOS] Erro completo:', {
       message: error.message,
-      stack: error.stack,
-      details: error.details,
-      hint: error.hint,
-      code: error.code
+      statusCode: error.statusCode,
+      stack: error.stack
     })
+    
+    if (error.statusCode) {
+      throw error
+    }
     
     throw createError({
       statusCode: 500,

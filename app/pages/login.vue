@@ -112,6 +112,17 @@
             </div>
           </Transition>
 
+          <!-- Link Esqueci Minha Senha -->
+          <div class="text-center">
+            <button
+              type="button"
+              @click="showForgotPasswordModal = true"
+              class="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+            >
+              Esqueci minha senha
+            </button>
+          </div>
+
           <!-- Botão de Login -->
           <UiButton 
             type="submit" 
@@ -157,6 +168,58 @@
         </div>
       </div>
 
+      <!-- Modal Esqueci Minha Senha -->
+      <div v-if="showForgotPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div class="text-center mb-6">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Recuperar Senha</h3>
+            <p class="text-sm text-gray-600">Digite seu email para receber as instruções de recuperação</p>
+          </div>
+
+          <form @submit.prevent="handleForgotPassword" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <input
+                v-model="forgotPasswordEmail"
+                type="email"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="seu.email@qualitecinstrumentos.com.br"
+                :disabled="forgotPasswordLoading"
+              />
+            </div>
+
+            <div v-if="forgotPasswordMessage" class="p-3 rounded-lg" :class="forgotPasswordMessageType === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'">
+              <p class="text-sm">{{ forgotPasswordMessage }}</p>
+            </div>
+
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                @click="closeForgotPasswordModal"
+                class="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                :disabled="forgotPasswordLoading"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                :disabled="forgotPasswordLoading"
+                class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                <span v-if="forgotPasswordLoading">Enviando...</span>
+                <span v-else>Enviar</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Rodapé Corporativo -->
       <div class="mt-8 text-center">
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -185,6 +248,13 @@ const senha = ref('')
 const loading = ref(false)
 const error = ref('')
 
+// Estados do modal de recuperação de senha
+const showForgotPasswordModal = ref(false)
+const forgotPasswordEmail = ref('')
+const forgotPasswordLoading = ref(false)
+const forgotPasswordMessage = ref('')
+const forgotPasswordMessageType = ref('error')
+
 const handleLogin = async () => {
   error.value = ''
   loading.value = true
@@ -198,6 +268,43 @@ const handleLogin = async () => {
     error.value = result.message
   }
   loading.value = false
+}
+
+const handleForgotPassword = async () => {
+  forgotPasswordLoading.value = true
+  forgotPasswordMessage.value = ''
+
+  try {
+    const response = await $fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      body: {
+        email: forgotPasswordEmail.value
+      }
+    })
+
+    if (response.success) {
+      forgotPasswordMessage.value = response.message
+      forgotPasswordMessageType.value = 'success'
+      
+      // Fechar modal após 3 segundos
+      setTimeout(() => {
+        closeForgotPasswordModal()
+      }, 3000)
+    }
+  } catch (error: any) {
+    console.error('Erro na recuperação de senha:', error)
+    forgotPasswordMessage.value = error.data?.message || 'Erro ao enviar email de recuperação'
+    forgotPasswordMessageType.value = 'error'
+  } finally {
+    forgotPasswordLoading.value = false
+  }
+}
+
+const closeForgotPasswordModal = () => {
+  showForgotPasswordModal.value = false
+  forgotPasswordEmail.value = ''
+  forgotPasswordMessage.value = ''
+  forgotPasswordLoading.value = false
 }
 </script>
 

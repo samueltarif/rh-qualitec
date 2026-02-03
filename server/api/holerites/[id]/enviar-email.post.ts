@@ -85,20 +85,50 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Função para calcular o mês de referência correto baseado na data atual e lógica de negócio
+    const calcularMesReferenciaCorreto = (periodoInicio: Date, periodoFim: Date): string => {
+      const hoje = new Date()
+      const diaAtual = hoje.getDate()
+      const mesAtual = hoje.getMonth() + 1
+      const anoAtual = hoje.getFullYear()
+      
+      // Verificar se é adiantamento (período termina até dia 15 ou período inicia no dia 15)
+      const isAdiantamento = periodoFim.getDate() <= 15 || periodoInicio.getDate() === 15
+      
+      if (isAdiantamento) {
+        // Para adiantamentos, usar a lógica do dateUtils
+        if (diaAtual >= 15) {
+          // Adiantamento do mês atual
+          return new Date(anoAtual, mesAtual - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+        } else {
+          // Adiantamento do mês anterior
+          const mesAnterior = mesAtual === 1 ? 12 : mesAtual - 1
+          const anoAnterior = mesAtual === 1 ? anoAtual - 1 : anoAtual
+          return new Date(anoAnterior, mesAnterior - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+        }
+      } else {
+        // Para folha mensal, sempre usar o mês vigente (atual)
+        return new Date(anoAtual, mesAtual - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      }
+    }
+
     // Formatar período
     const periodoInicio = new Date(holerite.periodo_inicio)
     const periodoFim = new Date(holerite.periodo_fim)
-    const mesAno = periodoInicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
     
-    // Determinar se é quinzenal
+    // Determinar tipo de holerite e calcular mês de referência correto
     let tipoHolerite = 'mensal'
     if (periodoInicio.getDate() === 1 && periodoFim.getDate() <= 15) {
       tipoHolerite = '1ª quinzena'
     } else if (periodoInicio.getDate() === 16) {
       tipoHolerite = '2ª quinzena'
     }
+    
+    const mesAno = calcularMesReferenciaCorreto(periodoInicio, periodoFim)
 
     console.log('📨 Enviando email para:', emailDestino)
+    console.log('📅 Mês de referência calculado:', mesAno)
+    console.log('🗓️ Período:', periodoInicio.toLocaleDateString('pt-BR'), 'a', periodoFim.toLocaleDateString('pt-BR'))
 
     // Enviar email
     const emailEnviado = await enviarEmail({

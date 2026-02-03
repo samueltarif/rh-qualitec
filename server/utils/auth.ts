@@ -33,10 +33,28 @@ export const verifyPassword = async (password: string, storedHash: string): Prom
     // Se não há storedHash, retorna false
     if (!storedHash) return false
     
+    // Verificar se é um hash do bcryptjs (formato: $2b$, $2a$, $2y$)
+    if (storedHash.startsWith('$2b$') || storedHash.startsWith('$2a$') || storedHash.startsWith('$2y$')) {
+      const bcrypt = await import('bcryptjs')
+      return await bcrypt.default.compare(password, storedHash)
+    }
+    
     // Verificar se é um hash migrado (formato: MIGRAR_senhaoriginal)
     if (storedHash.startsWith('MIGRAR_')) {
       const originalPassword = storedHash.replace('MIGRAR_', '')
       return password === originalPassword
+    }
+    
+    // Verificar se é um hash do bcryptjs (formato: $2a$, $2b$, $2x$, $2y$)
+    if (storedHash.startsWith('$2')) {
+      try {
+        // Importar bcryptjs dinamicamente para verificação
+        const bcrypt = await import('bcryptjs')
+        return await bcrypt.compare(password, storedHash)
+      } catch (error) {
+        console.error('Erro ao verificar hash bcryptjs:', error)
+        return false
+      }
     }
     
     // Verificar se é um hash real (formato: salt:hash)

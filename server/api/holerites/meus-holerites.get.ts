@@ -1,3 +1,4 @@
+import { requireOwnershipOrAdmin } from '../../utils/authMiddleware'
 import { notificarVisualizacaoHolerite } from '../../utils/notifications'
 
 export default defineEventHandler(async (event) => {
@@ -13,30 +14,18 @@ export default defineEventHandler(async (event) => {
   console.log('🔍 [MEUS-HOLERITES] Timestamp:', new Date().toISOString())
   console.log('🔍 [MEUS-HOLERITES] Query params:', query)
   console.log('🔍 [MEUS-HOLERITES] Funcionário ID:', funcionarioId)
-  console.log('🔍 [MEUS-HOLERITES] Environment:', process.env.NODE_ENV)
-  console.log('🔍 [MEUS-HOLERITES] Vercel URL:', process.env.VERCEL_URL)
-  console.log('🔍 [MEUS-HOLERITES] Runtime Config Public:', {
-    supabaseUrl: config.public.supabaseUrl ? `${config.public.supabaseUrl.substring(0, 30)}...` : 'MISSING',
-    supabaseKey: config.public.supabaseKey ? 'PRESENTE' : 'MISSING'
-  })
-  console.log('🔍 [MEUS-HOLERITES] Runtime Config Private:', {
-    serviceRoleKey: config.supabaseServiceRoleKey ? 'PRESENTE' : 'MISSING'
-  })
-  console.log('🔍 [MEUS-HOLERITES] URL final:', supabaseUrl)
-  console.log('🔍 [MEUS-HOLERITES] Key final:', serviceRoleKey ? 'PRESENTE' : 'MISSING')
-
-  // CORREÇÃO PRODUÇÃO: Headers CORS para Vercel
-  setHeader(event, 'Access-Control-Allow-Origin', '*')
-  setHeader(event, 'Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  setHeader(event, 'Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (!funcionarioId) {
     console.error('❌ [MEUS-HOLERITES] Funcionário não identificado')
     throw createError({
-      statusCode: 401,
-      message: 'Funcionário não identificado'
+      statusCode: 400,
+      statusMessage: 'ID do funcionário é obrigatório'
     })
   }
+
+  // SEGURANÇA: Verificar autenticação e autorização
+  const requestingUser = await requireOwnershipOrAdmin(event, funcionarioId as string)
+  console.log('🔒 [MEUS-HOLERITES] Usuário autenticado:', requestingUser.nome_completo, 'acessando holerites do ID:', funcionarioId)
 
   console.log('🔍 [MEUS-HOLERITES] Buscando holerites para funcionário ID:', funcionarioId)
 
@@ -144,7 +133,7 @@ export default defineEventHandler(async (event) => {
     
     if (holerites && holerites.length > 0) {
       console.log('📦 [MEUS-HOLERITES] Primeiros 3 holerites:')
-      holerites.slice(0, 3).forEach((h, i) => {
+      holerites.slice(0, 3).forEach((h: any, i: number) => {
         console.log(`   ${i+1}. ID: ${h.id}, Status: ${h.status}, Período: ${h.periodo_inicio} a ${h.periodo_fim}`)
       })
     } else {
@@ -155,9 +144,45 @@ export default defineEventHandler(async (event) => {
       console.log('   - ID do funcionário está correto')
     }
 
-    // Se há holerites, buscar dados do funcionário para notificação
+    // Se há holerites, buscar dados do funcionário para notificação E atualizar status
     if (holerites && holerites.length > 0) {
       try {
+        // NOVA FUNCIONALIDADE: Atualizar status dos holerites para "visualizado"
+        // quando o funcionário acessar a área "meus holerites"
+        const holeriteIds = holerites
+          .filter((h: any) => h.status !== 'visualizado') // Só atualizar os que não são visualizados
+          .map((h: any) => h.id)
+        
+        if (holeriteIds.length > 0) {
+          console.log(`🔄 [MEUS-HOLERITES] Atualizando ${holeriteIds.length} holerites para status "visualizado"`)
+          
+          const updateResponse = await fetch(
+            `${supabaseUrl}/rest/v1/holerites?id=in.(${holeriteIds.join(',')})`,
+            {
+              method: 'PATCH',
+              headers: {
+                'apikey': serviceRoleKey,
+                'Authorization': `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+              },
+              body: JSON.stringify({ status: 'visualizado' })
+            }
+          )
+          
+          if (updateResponse.ok) {
+            console.log(`✅ [MEUS-HOLERITES] Status atualizado com sucesso para ${holeriteIds.length} holerites`)
+            // Atualizar os holerites na resposta também
+            holerites.forEach((h: any) => {
+              if (holeriteIds.includes(h.id)) {
+                h.status = 'visualizado'
+              }
+            })
+          } else {
+            console.error(`❌ [MEUS-HOLERITES] Erro ao atualizar status:`, await updateResponse.text())
+          }
+        }
+
         const funcionarioResponse = await fetch(
           `${supabaseUrl}/rest/v1/funcionarios?id=eq.${funcionarioId}&select=id,nome_completo,email_login,email_pessoal`,
           { 
