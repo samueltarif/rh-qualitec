@@ -45,28 +45,10 @@
           </div>
           
           <!-- Título e Subtítulo -->
-          <div class="space-y-2 mb-4">
+          <div class="space-y-2 mb-6">
             <h1 class="text-2xl font-bold text-industrial-800">
-              Sistema RH
-            </h1>
-            <p class="text-sm text-industrial-600 font-medium">
               Gestão de Recursos Humanos
-            </p>
-          </div>
-          
-          <!-- Linha Decorativa Industrial -->
-          <div class="flex items-center justify-center mb-3">
-            <div class="h-px bg-gradient-to-r from-transparent via-qualitec-300 to-transparent w-32"></div>
-            <div class="mx-3 w-2 h-2 bg-qualitec-500 rounded-full"></div>
-            <div class="h-px bg-gradient-to-r from-transparent via-qualitec-300 to-transparent w-32"></div>
-          </div>
-          
-          <!-- Certificação -->
-          <div class="flex items-center justify-center gap-2 text-xs text-industrial-500">
-            <svg class="w-4 h-4 text-qualitec-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-            <span class="font-medium">ISO 9001:2015 | Instrumentação Industrial</span>
+            </h1>
           </div>
         </div>
 
@@ -79,22 +61,14 @@
               </svg>
             </div>
             <div class="text-center">
-              <p class="text-qualitec-800 font-bold text-sm">Acesso Corporativo</p>
-              <p class="text-qualitec-600 text-xs">Credenciais fornecidas pelo RH</p>
+              <p class="text-qualitec-800 font-bold text-sm">Sistema Corporativo</p>
             </div>
           </div>
         </div>
 
-        <!-- Alerta de Erro Geral -->
-        <div v-if="error || emailError" class="mb-6">
-          <UiAlert variant="error" :title="emailError ? 'Erro de Autenticação' : 'Erro no Login'">
-            {{ emailError || error }}
-          </UiAlert>
-        </div>
-
         <!-- Formulário de Login -->
         <form @submit.prevent="handleLogin" class="space-y-6" :class="{ 'shake': shakeForm }">
-          <!-- Alerta de Erro Geral -->
+          <!-- Alerta de Erro Único -->
           <Transition name="fade">
             <div 
               v-if="error || emailError" 
@@ -267,13 +241,8 @@
               </div>
               <div class="text-left">
                 <p class="text-qualitec-800 font-bold text-sm">Sistema Seguro</p>
-                <p class="text-qualitec-600 text-xs">Certificado ISO 9001:2015</p>
               </div>
             </div>
-            <p class="text-industrial-600 text-xs leading-relaxed">
-              Plataforma corporativa protegida por criptografia avançada.<br>
-              Acesso monitorado e auditado para sua segurança.
-            </p>
           </div>
         </div>
       </UiCardIndustrial>
